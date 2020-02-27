@@ -1,0 +1,62 @@
+{
+    "application_name": "nas",
+    "optimization_objectives": ["Value"],
+    "optimization_iterations": 2,
+    "input_parameters" : {
+        "n_nodes": {
+            "parameter_type" : "ordinal",
+            "values" : [2, 4, 8, 16],
+            "parameter_default" : 2
+        },
+        "active_0": {
+            "parameter_type" : "integer",
+            "values" : [0, 1],
+            "parameter_default" : 1
+        },
+        "skip_0": {
+              "parameter_type" : "integer",
+              "values" : [0, 4],
+              "parameter_default" : 0
+        },
+        "active_1": {
+            "parameter_type" : "integer",
+            "values" : [0, 1],
+            "parameter_default" : 1
+        },
+        "skip_1": {
+              "parameter_type" : "integer",
+              "values" : [0, 3],
+              "parameter_default" : 0
+        },
+        "active_2": {
+            "parameter_type" : "integer",
+            "values" : [0, 1],
+            "parameter_default" : 1
+        },
+        "skip_2": {
+              "parameter_type" : "integer",
+              "values" : [0, 2],
+              "parameter_default" : 0
+        },
+        "active_3": {
+            "parameter_type" : "integer",
+            "values" : [0, 1],
+            "parameter_default" : 1
+        },
+        "skip_3": {
+              "parameter_type" : "integer",
+              "values" : [0, 1],
+              "parameter_default" : 0
+        },
+        "active_4": {
+            "parameter_type" : "integer",
+            "values" : [0, 1],
+            "parameter_default" : 1
+        },
+        "skip_4": {
+              "parameter_type" : "integer",
+              "values" : [0, 1],
+              "parameter_default" : 0
+        }
+    }
+}

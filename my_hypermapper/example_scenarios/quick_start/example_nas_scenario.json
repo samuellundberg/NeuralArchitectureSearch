@@ -1,0 +1,45 @@
+{
+    "application_name": "nas",
+    "optimization_objectives": [
+        "Value"
+    ],
+    "optimization_iterations": 5,
+    "input_parameters": {
+        "n_nodes": {
+            "parameter_type": "ordinal",
+            "values": [
+                4,
+                8,
+                16
+            ]
+        },
+        "active_0": {
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "skip_0": {
+            "parameter_type": "integer",
+            "values": [
+                0,
+                4
+            ]
+        },
+        "active_1": {
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        },
+        "active_2": {
+            "parameter_type": "ordinal",
+            "values": [
+                0,
+                1
+            ]
+        }
+    }
+}

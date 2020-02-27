@@ -1,0 +1,23 @@
+{
+    "application_name": "branin",
+    "optimization_objectives": [
+        "Value"
+    ],
+    "optimization_iterations": 5,
+    "input_parameters": {
+        "x1": {
+            "parameter_type": "real",
+            "values": [
+                -5,
+                10
+            ]
+        },
+        "x2": {
+            "parameter_type": "real",
+            "values": [
+                0,
+                15
+            ]
+        }
+    }
+}
