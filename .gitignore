@@ -100,3 +100,5 @@ wheels/
 # My own stuff
 my_hypermapper/hypermapper_logfile.log
 my_hypermapper/nas_output_samples.csv
+data/
+
