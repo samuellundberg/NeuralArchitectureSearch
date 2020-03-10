@@ -200,8 +200,8 @@
       },
       "optimization_method":{
         "type": "string",
-        "description": "Method to use for the multi-objective optimization in Hypermapper.",
-        "enum": ["random_scalarizations", "local_search"],
+        "description": "Method to use for the multi-objective optimization in Hypermapper. evolution added by Samuel",
+        "enum": ["random_scalarizations", "local_search", "evolution"],
         "default": "random_scalarizations"
       },
       "local_search_starting_points":{
