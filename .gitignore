@@ -103,3 +103,4 @@ my_hypermapper/nas_output_samples.csv
 data/
 *.csv
 my_hypermapper/example_scenarios/quick_start/example_*_scenario.json
+*.png
