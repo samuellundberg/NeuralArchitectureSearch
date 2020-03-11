@@ -212,7 +212,9 @@ def trainer(network, train_data, test_data, optimizer=0):
     # print('Accuracy of the network on the 10000 test images: %d %%' % (
     #   100 * correct / total))
 
-    return 1 - correct / total
+    # Accuracy is our performance measure, err = 1 / acc gives us a minimization problem. Which is preferred.
+    accuracy = correct / total
+    return 1 / accuracy
 
 
 # Objective function for HyperMapper to optimize

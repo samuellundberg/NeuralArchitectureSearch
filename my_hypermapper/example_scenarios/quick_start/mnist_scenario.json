@@ -21,16 +21,16 @@
             "values": [0, 1]
         },
         "activation": {
-            "parameter_type": "ordinal",
-            "values": [0, 1]
+            "parameter_type": "categorical",
+            "values": ["tanh", "relu"]
         },
         "batch_size": {
             "parameter_type": "ordinal",
             "values": [16, 32, 64, 128, 256]
         },
         "optimizer": {
-            "parameter_type": "ordinal",
-            "values": [0, 1, 2]
+            "parameter_type": "categorical",
+            "values": ["sgd", "adam", "rmsprop"]
         }
     }
 }
