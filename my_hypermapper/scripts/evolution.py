@@ -23,7 +23,7 @@ def arbitrary_function(arg1, arg2):
     return 0
 
 
-# Taken from local_search
+# Taken from local_search and modified
 def run_objective_function(
                         configurations,
                         hypermapper_mode,
@@ -32,11 +32,6 @@ def run_objective_function(
                         run_directory,
                         evolution_data_array,
                         fast_addressing_of_data_array,
-                        # exhaustive_search_data_array,
-                        # exhaustive_search_fast_addressing_of_data_array,
-                        # scalarization_weights,
-                        # objective_limits,
-                        # scalarization_method,
                         enable_feasible_predictor=False,
                         evaluation_limit=float("inf"),
                         black_box_function=None,
@@ -52,12 +47,9 @@ def run_objective_function(
     :param run_directory: directory where HyperMapper is running.
     :param evolution_data_array: a dictionary containing all of the configurations that have been evaluated.
     :param fast_addressing_of_data_array: a dictionary containing evaluated configurations and their index in the evolution_data_array.
-    :param x scalarization_weights: the weights used to scalarize the function value.
-    :param x objective_limits: dictionary containing the estimated min and max limits for each objective.
-    :param x scalarization_method: which method to use to scalarize multiple objectives.
     :param x enable_feasible_predictor: whether to use constrained optimization.
-    :param (x) evaluation_limit: the maximum number of function evaluations allowed for the local search.
-    :param black_box_function: the black_box_function being optimized in the local search.
+    :param (x) evaluation_limit: the maximum number of function evaluations allowed for the evolutionary search.
+    :param black_box_function: the black_box_function being optimized in the evolutionary search.
     :param number_of_cpus: an integer for the number of cpus to be used in parallel.
     :return: data_array with evaluations for all points in configurations.
     """
@@ -67,8 +59,6 @@ def run_objective_function(
     number_of_new_evaluations = 0
     t0 = datetime.datetime.now()
     absolute_configuration_index = len(fast_addressing_of_data_array)
-    function_values = {}
-
 
     # Adds configutations to new if they have not been evaluated before
     for configuration in configurations:
@@ -86,29 +76,13 @@ def run_objective_function(
     t1 = datetime.datetime.now()
     if number_of_new_evaluations > 0:
         # if hypermapper_mode = default, this equals run_configurations_with_black_box_function()
-        new_evaluations = param_space.run_configurations(
-                                                        hypermapper_mode,
-                                                        new_configurations,
-                                                        beginning_of_time,
-                                                        black_box_function,
-                                                        run_directory)
-        """
-        Run a set of configurations in one of HyperMappers modes.
-        Default params
-        :param hypermapper_mode: which HyperMapper mode to run as.
-        :param configurations: a list of configurations (dict).
-        :param beginning_of_time: time from the beginning of the HyperMapper design space exploration.
-        """
-    # Values for all given configurations. equal to data array.
+        # All new evaluations are printed, deep down
+        new_evaluations = param_space.run_configurations(hypermapper_mode, new_configurations, beginning_of_time,
+                                                         black_box_function, run_directory)
+
+    # Values for all given configurations
     all_evaluations = concatenate_data_dictionaries(previous_evaluations, new_evaluations)
     all_evaluations_size = len(all_evaluations[list(all_evaluations.keys())[0]])
-    # scalarized_values, tmp_objective_limits = compute_data_array_scalarization(
-    #                                                    all_evaluations,
-    #                                                  scalarization_weights,
-    #                                                objective_limits,
-    #                                              None,
-    #                                            scalarization_method)
-
 
     for idx in range(number_of_new_evaluations):
         configuration = get_single_configuration(new_evaluations, idx)
@@ -118,34 +92,31 @@ def run_objective_function(
         str_data = param_space.get_unique_hash_string_from_values(configuration)
         fast_addressing_of_data_array[str_data] = absolute_configuration_index
         absolute_configuration_index += 1
-
     sys.stdout.write_to_logfile(("Time to run new configurations %10.4f sec\n" % ((datetime.datetime.now() - t1).total_seconds())))
     sys.stdout.write_to_logfile(("Total time to run configurations %10.4f sec\n" % ((datetime.datetime.now() - t0).total_seconds())))
 
     # return list(scalarized_values), feasibility_indicators
-    return all_evaluations_size         # This should be population_size anyway. lol
+    return all_evaluations_size
 
 
-def evolution(population_size, param_space, optimization_function, optimization_function_parameters):
+def evolution(population_size, param_space, fast_addressing_of_data_array, optimization_function, optimization_function_parameters):
 
     """
     Do the entire evolutinary process from config to best config
     :param population_size: an integer for the number of configs to keep. All will be initiated randomly
     :param param_space: a space object containing the search space.
-    :param optimization_function: the function that will be optimized by the local search.
+    :param optimization_function: the function that will be optimized by the evolutionary search.
     :param optimization_function_parameters: a dictionary containing the parameters that will be passed to the optimization function.
     :return: all points evaluted and the best point found by the Evolutionary Algorithm.
     """
 
     t0 = datetime.datetime.now()
-    fast_addressing_of_data_array = {}
     tmp_fast_addressing_of_data_array = copy.deepcopy(fast_addressing_of_data_array)
-    input_params = param_space.get_input_parameters()
-    feasible_parameter = param_space.get_feasible_parameter()[0]
-
-    # Containes all points evaluated. How does it differ from *_data_array in the **dict?
+    # input_params = param_space.get_input_parameters()
+    # feasible_parameter = param_space.get_feasible_parameter()[0]
+    # How does it differ from *_data_array in the **dict?
     data_array = {}
-    end_of_search = False
+    # end_of_search = False
 
 
     # 1. Get a population by taking random samples
@@ -173,19 +144,21 @@ def evolution(population_size, param_space, optimization_function, optimization_
 
     # Passing the dictionary with ** expands the key-value pairs into function parameters
     # could this be a void function? all_evaluations_size = population_size
-    all_evaluations_size = optimization_function(configurations=configurations, **optimization_function_parameters)
+    function_values_size = optimization_function(configurations=configurations, **optimization_function_parameters)
 
-    # This will concatenate the entire neighbors array if all configurations were evaluated
+    # This will concatenate the entire data array if all configurations were evaluated
     # but only the evaluated configurations if we reached the budget and did not evaluate all
-    # function_values_size = len(function_values)
-    function_values_size = all_evaluations_size
+    # So in my case function_values_size is useless?
     new_data_array = concatenate_list_of_dictionaries(configurations[:function_values_size])
     data_array = concatenate_data_dictionaries(data_array, new_data_array)
 
     # Jag tror jag har tagit det jag vill ha av delen före best improvement local search
     # 2
 
-    best_configuration = 0
+    best_configuration = 0      # Do we need this?
+
+    sys.stdout.write_to_logfile(("Evolution time %10.4f sec\n" % ((datetime.datetime.now() - t0).total_seconds())))
+
     return data_array, best_configuration
 
 
@@ -196,13 +169,9 @@ def main(config, black_box_function=None, output_file=""):
     :param output_file: a name for the file used to save the dse results.
     :return:
     """
-    print("Entering evolution...")
 
     # Space basically turn config into a class with many handy functions
     param_space = space.Space(config)
-
-    # EA parameters that should be encorporated to configs etc.
-    population_size = 5
 
     # I probably want to do this
     run_directory = config["run_directory"]
@@ -218,15 +187,13 @@ def main(config, black_box_function=None, output_file=""):
 
     # Here they pull a lot of configurations from the config about how to execute the LS, basically its hyperparams
     # I should probably do my own for the EA. But can maybe hard code them here for now
-    # hyper_parameter_x = config["hyper_parameter_x"
 
-    # this is the required param. Will probably allways be value
+    # this is the required param. Will probably always be value only
     optimization_metrics = config["optimization_objectives"]
     number_of_objectives = len(optimization_metrics)
 
     ### Assign hyperparameters for the EA here ###
-
-
+    population_size = config["evolution_population_size"]
 
     ### End of hyperparameter assigning ###
 
@@ -278,10 +245,10 @@ def main(config, black_box_function=None, output_file=""):
 
     print("Starting evolution...")
     evolution_t0 = datetime.datetime.now()
-    # Should fast_addressing_of_data_array be sent in here??
     all_samples, best_configuration = evolution(
                                                 population_size,
                                                 param_space,
+                                                fast_addressing_of_data_array,
                                                 run_objective_function,
                                                 optimization_function_parameters
                                                 )
@@ -297,7 +264,7 @@ def main(config, black_box_function=None, output_file=""):
         for i in range(len(evolution_data_array[optimization_metrics[0]])):
             w.writerow(tmp_list[i])
 
-    print("### End of the local search.")
+    print("### End of the evolutionary search.")
 
 if __name__ == "__main__":
 
