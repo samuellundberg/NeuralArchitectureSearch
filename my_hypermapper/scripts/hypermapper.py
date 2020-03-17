@@ -62,6 +62,8 @@ def optimize(parameters_file, black_box_function=None):
         local_search.main(config, black_box_function=black_box_function)
     # Added by Samuel
     elif optimization_method == "evolution":
+        # Runs the evolutionary algorithm based on settings described in scenario
+        # Properties not specified will be taken from default values in schema
         evolution.main(config, black_box_function=black_box_function)
     else:
         print("Unrecognized optimization method:", optimization_method)
