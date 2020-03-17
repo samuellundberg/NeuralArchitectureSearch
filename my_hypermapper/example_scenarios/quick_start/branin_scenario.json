@@ -2,6 +2,7 @@
     "application_name": "branin",
     "optimization_objectives": ["Value"],
     "optimization_iterations": 20,
+    "optimization_method": "evolution",
     "input_parameters" : {
         "x1": {
             "parameter_type" : "real",

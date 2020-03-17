@@ -26,7 +26,7 @@ def branin_function(X):
     return y_value
 
 def main():
-    parameters_file = "example_scenarios/quick_start/example_branin_scenario.json"
+    parameters_file = "example_scenarios/quick_start/branin_scenario.json"
     hypermapper.optimize(parameters_file, branin_function)
     print("End of Branin.")
 

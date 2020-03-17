@@ -2,6 +2,8 @@
     "application_name": "mnist",
     "optimization_objectives": ["Value"],
     "output_data_file": "stupid.csv",
+    "optimization_method": "evolution",
+    "evolution_population_size": 5,
     "design_of_experiment": {
         "doe_type": "random sampling",
         "number_of_samples": 10
