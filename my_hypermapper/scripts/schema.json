@@ -253,8 +253,13 @@
       },
       "evolution_population_size":{
         "type": "integer",
-        "description": "number of points the Evoluti0nary Algorithm keeps track of. added by Samuel",
-        "default": 50
+        "description": "number of points the Evolutionary Algorithm keeps track of. added by Samuel",
+        "default": 5
+      },
+      "evolution_generations":{
+        "type": "integer",
+        "description": "number of iterations through the evolutionary loop. added by Samuel",
+        "default": 5
       }
     },
     "additionalProperties": false,
