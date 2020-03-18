@@ -260,6 +260,11 @@
         "type": "integer",
         "description": "number of iterations through the evolutionary loop. added by Samuel",
         "default": 5
+      },
+      "mutation_rate":{
+        "type": "integer",
+        "description": "probability for a mutation (This is not a good setting). added by Samuel",
+        "default": 1
       }
     },
     "additionalProperties": false,
