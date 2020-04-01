@@ -1,0 +1,51 @@
+{
+    "application_name": "resnet",
+    "optimization_objectives": ["Value"],
+    "output_data_file": "stupid.csv",
+    "optimization_method": "evolution",
+    "evolution_population_size": 3,
+    "design_of_experiment": {
+        "doe_type": "random sampling",
+        "number_of_samples": 10
+    },
+    "optimization_iterations": 0,
+
+    "input_parameters": {
+        "n_filters": {
+            "parameter_type": "ordinal",
+            "values": [1, 2, 4, 8, 12, 16, 24, 32]
+        },
+        "filter_upd": {
+            "parameter_type": "ordinal",
+            "values": [0.5001, 1, 1.5, 2]
+        },
+        "n_blocks1": {
+            "parameter_type": "ordinal",
+            "values": [0, 1, 2, 3, 5, 7, 9, 18]
+        },
+        "n_blocks2": {
+            "parameter_type": "ordinal",
+            "values": [0, 1, 2, 3, 5, 7, 9, 18]
+        },
+        "n_blocks3": {
+            "parameter_type": "ordinal",
+            "values": [0, 1, 2, 3, 5, 7, 9, 18]
+        },
+        "n_blocks4": {
+            "parameter_type": "ordinal",
+            "values": [0, 1, 2, 3, 5, 7, 9, 18]
+        },
+        "conv0": {
+            "parameter_type": "categorical",
+            "values": ["3", "7"]
+        },
+        "pool": {
+            "parameter_type": "categorical",
+            "values": ["no", "yes"]
+        },
+        "reduce": {
+            "parameter_type": "categorical",
+            "values": ["yes", "no"]
+        }
+    }
+}
