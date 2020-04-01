@@ -440,7 +440,8 @@ def main(config, black_box_function=None, output_file=""):
         vals.append(bc['Value'])
     print('values: ', vals)
     plt.scatter(r, vals)
-    plt.show()
+    #plt.show()
+    plt.savefig('evolution_output.png')
 
     # param_objs = optimization_function_parameters["param_space"].get_input_parameters_objects()
     # param_obj = param_objs['x1']
