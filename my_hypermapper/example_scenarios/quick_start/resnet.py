@@ -286,7 +286,7 @@ def trainer(network, train_data, test_data, epochs=1):
     # print('Accuracy of the network on the 10000 test images: %d %%' % (
     #   100 * correct / total))
 
-    return total / correct  # inverse accuracy for minimization
+    return 100 * (1 - correct / total)    # 1 - accuracy for minimization
 
 # Objective function for HyperMapper to optimize
 def ResNet_function(X):
@@ -330,9 +330,10 @@ def ResNet_function(X):
     dataiter = iter(train_loader)
     images, labels = dataiter.next()
     outputs = my_net(images)
-    loss = 1
+    import numpy.random as rd
+    loss = rd.random()
     """
-    print('accuracy: ', 1 / loss)
+    print('accuracy: ', 100 - loss)
     # print('\n')
     return loss
 
