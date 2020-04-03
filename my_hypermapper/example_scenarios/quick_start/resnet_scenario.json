@@ -2,7 +2,7 @@
     "application_name": "resnet",
     "optimization_objectives": ["Value"],
     "output_data_file": "stupid.csv",
-    "optimization_method": "evolution",
+    "optimization_method": "random_scalarizations",
     "evolution_population_size": 3,
     "evolution_generations": 1,
     "design_of_experiment": {
@@ -12,6 +12,10 @@
     "optimization_iterations": 0,
 
     "input_parameters": {
+        "block": {
+            "parameter_type": "categorical",
+            "values": ["basic", "bottleneck"]
+        },
         "n_filters": {
             "parameter_type": "ordinal",
             "values": [1, 2, 4, 8, 12, 16, 24, 32]
