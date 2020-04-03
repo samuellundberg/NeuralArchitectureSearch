@@ -12,7 +12,7 @@ from collections import defaultdict
 from scipy import stats
 import numpy.random as rd
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 
 
