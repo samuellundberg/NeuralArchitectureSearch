@@ -2,11 +2,11 @@
     "application_name": "mnist",
     "optimization_objectives": ["Value"],
     "output_data_file": "stupid.csv",
-    "optimization_method": "evolution",
+    "optimization_method": "random_scalarizations",
     "evolution_population_size": 6,
     "design_of_experiment": {
         "doe_type": "random sampling",
-        "number_of_samples": 10
+        "number_of_samples": 1
     },
     "optimization_iterations": 0,
     "input_parameters": {

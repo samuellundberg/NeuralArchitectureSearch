@@ -155,7 +155,7 @@ class json2pheno(nn.Module):
 
 
 # Trains network and returns validation performance
-def trainer(network, train_data, test_data, optimizer=0):
+def trainer(network, train_data, test_data, device, optimizer=0):
     # Always uses cross entropy as loss function
     criterion = nn.CrossEntropyLoss()
 
@@ -178,7 +178,8 @@ def trainer(network, train_data, test_data, optimizer=0):
         running_loss = 0.0
         for i, data in enumerate(train_data, 0):
             # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data
+            # inputs, labels = data
+            inputs, labels = data[0].to(device), data[1].to(device)
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -247,10 +248,16 @@ def MNIST_function(X):
     nout = 10
     my_net = json2pheno(X, nin, nout)
 
+    ### GPU ###
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # Assuming that we are on a CUDA machine, this should print a CUDA device:
+    print('device: ', device.type)
+    my_net.to(device)
+
     # Specifies optimizer if given in json scenario.
     if 'optimizer' in X:
         optimizer = X['optimizer']
-        loss = trainer(my_net, train_loader, test_loader, optimizer)
+        loss = trainer(my_net, train_loader, test_loader, device, optimizer)
     else:
         print('optimizer not given')
         loss = trainer(my_net, train_loader, test_loader)
