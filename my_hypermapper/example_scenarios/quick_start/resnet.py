@@ -17,7 +17,7 @@ import torch.optim as optim
 import torchvision
 from torchvision import datasets, transforms
 from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize, Resize
+from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomCrop, RandomHorizontalFlip
 from torch.utils.data import DataLoader
 
 import json
@@ -38,15 +38,16 @@ def get_data_loaders(train_batch_size, test_batch_size, size=(32, 32)):
 
     mnist = MNIST('data/', download=False, train=True).train_data.float()
     # Cifar10 normalization: Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    """
-    data_transform = Compose([Resize(size), ToTensor(), Normalize((mnist.mean()/255,), (mnist.std()/255,))])
+
+    transform_train = Compose([RandomHorizontalFlip(), Resize(size), RandomCrop(32, padding=4), ToTensor(), Normalize((mnist.mean()/255,), (mnist.std()/255,))])
+    transform_test = Compose([Resize(size), ToTensor(), Normalize((mnist.mean()/255,), (mnist.std()/255,))])
     """
     transform_train = Compose([
         Resize(size),
         ToTensor(),
         Normalize((mnist.mean() / 255,), (mnist.std() / 255,)),
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
+        RandomCrop(32, padding=4),
+        RandomHorizontalFlip(),
     ])
 
     transform_test = Compose([
@@ -54,6 +55,7 @@ def get_data_loaders(train_batch_size, test_batch_size, size=(32, 32)):
         ToTensor(),
         Normalize((mnist.mean() / 255,), (mnist.std() / 255,)),
     ])
+    """
     train_loader = DataLoader(MNIST('data/', download=True, transform=transform_train, train=True),
                               batch_size=train_batch_size, shuffle=True)
 
@@ -310,7 +312,7 @@ class json2ResNet(nn.Module):
 
 
 # Trains network and returns validation performance
-def trainer(network, train_data, test_data, epochs=1):
+def trainer(network, train_data, test_data, device, epochs=1):
     # Always uses cross entropy as loss function
     criterion = nn.CrossEntropyLoss()
     # optimizer = optim.Adam(network.parameters())
@@ -332,7 +334,7 @@ def trainer(network, train_data, test_data, epochs=1):
         scheduler.step()
         for i, data in enumerate(train_data, 0):
             # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data
+            inputs, labels = data[0].to(device), data[1].to(device)
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -357,7 +359,7 @@ def trainer(network, train_data, test_data, epochs=1):
     total = 0
     with torch.no_grad():
         for data in test_data:
-            images, labels = data
+            images, labels = data[0].to(device), data[1].to(device)
             outputs = network(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
@@ -408,17 +410,24 @@ def ResNet_function(X):
     #block=Bottleneck
     print(X)
     my_net = json2ResNet(block, filters, filter_upd, blocks, kernel_size=kernel_size, pool=pool, reduce=reduce)
+    ### GPU ###
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # Assuming that we are on a CUDA machine, this should print a CUDA device:
+    print('device: ', device.type)
+    my_net.to(device)
+
     # print(my_net)
     # print('parmas: ', count_params(my_net))
     # print('we got a resnet by num lay: ', nbr_layers, 'filters: ', filters, 'blocks: ', blocks)
-    # loss = trainer(my_net, train_loader, test_loader, epochs=1)
-
+    loss = trainer(my_net, train_loader, test_loader, device, epochs=1)
+    """
     dataiter = iter(train_loader)
     images, labels = dataiter.next()
     outputs = my_net(images)
     import numpy.random as rd
     loss = rd.random()
-    #print('accuracy: ', 100 - loss)
+    """
+    print('accuracy: ', 100 - loss)
     # print('\n')
     return loss
 
