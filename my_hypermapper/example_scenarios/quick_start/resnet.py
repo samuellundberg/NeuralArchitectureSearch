@@ -32,17 +32,32 @@ sys.path.append('scripts')
 
 import hypermapper
 
+
 # Load the MNIST dataset
-def get_data_loaders(train_batch_size, test_batch_size, size=(224,224)):
+def get_data_loaders(train_batch_size, test_batch_size, size=(32, 32)):
 
     mnist = MNIST('data/', download=False, train=True).train_data.float()
+    # Cifar10 normalization: Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    """
+    data_transform = Compose([Resize(size), ToTensor(), Normalize((mnist.mean()/255,), (mnist.std()/255,))])
+    """
+    transform_train = Compose([
+        Resize(size),
+        ToTensor(),
+        Normalize((mnist.mean() / 255,), (mnist.std() / 255,)),
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+    ])
 
-    data_transform = Compose([ Resize(size) ,ToTensor(), Normalize((mnist.mean()/255,), (mnist.std()/255,))])
-
-    train_loader = DataLoader(MNIST('data/', download=True, transform=data_transform, train=True),
+    transform_test = Compose([
+        Resize(size),
+        ToTensor(),
+        Normalize((mnist.mean() / 255,), (mnist.std() / 255,)),
+    ])
+    train_loader = DataLoader(MNIST('data/', download=True, transform=transform_train, train=True),
                               batch_size=train_batch_size, shuffle=True)
 
-    test_loader = DataLoader(MNIST('data/', download=False, transform=data_transform, train=False),
+    test_loader = DataLoader(MNIST('data/', download=False, transform=transform_test, train=False),
                             batch_size=test_batch_size, shuffle=False)
 
     # print('loaded the mnist data')
@@ -222,14 +237,18 @@ class json2ResNet(nn.Module):
         else:
             self.fc = nn.Linear(filters * pixels, num_classes)
 
-        # What is this??? weight initialization
+        # weight initialization
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
+                # He initialization: https://arxiv.org/pdf/1502.01852.pdf
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                # this is how bn weights usualy are initialized acording tp pytorch
+                # bach_norm: https://arxiv.org/pdf/1502.03167.pdf
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
+        # This is not part of the resnet paper, too new
         # Zero-initialize the last BN in each residual branch,
         # so that the residual branch starts with zeros, and each residual block behaves like an identity.
         # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
@@ -294,12 +313,23 @@ class json2ResNet(nn.Module):
 def trainer(network, train_data, test_data, epochs=1):
     # Always uses cross entropy as loss function
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(network.parameters())
+    # optimizer = optim.Adam(network.parameters())
+    # run the first epoch with lr of 0.01 if deep network (100 but not 50ish)
+    optimizer = optim.SGD(network.parameters(), lr=0.1, momentum=0.9, dampening=0,
+                          weight_decay=0.0001, nesterov=False)
+    """
+    How I want the learning rate:
+    lr = 0.1 for epoch <80 
+    lr = 0.01 for epoch 80-120
+    lr = 0.001 for epoch >120
+    lr = 0.01 for first epoch to warm up training if network is deep
+    """
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[80, 120], gamma=0.1)
 
-    # Train for a given number of epochs (1)
     t0 = time.perf_counter()
     for epoch in range(epochs):  # loop over the dataset multiple times
         running_loss = 0.0
+        scheduler.step()
         for i, data in enumerate(train_data, 0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
