@@ -348,8 +348,8 @@ def trainer(network, train_data, test_data, device, epochs=1):
             # print statistics
             running_loss += loss.item()
             if i % 100 == 99:  # print every 200 mini-batches
-                print('[%d, %5d] loss: %.3f' %
-                      (epoch + 1, i + 1, running_loss / 100))
+                # print('[%d, %5d] loss: %.3f' %
+                #       (epoch + 1, i + 1, running_loss / 100))
                 running_loss = 0.0
 
     print('Finished Training it took ', (time.perf_counter() - t0) / 60, ' minutes to train')
@@ -413,13 +413,13 @@ def ResNet_function(X):
     ### GPU ###
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # Assuming that we are on a CUDA machine, this should print a CUDA device:
-    print('device: ', device.type)
+    # print('device: ', device.type)
     my_net.to(device)
 
     # print(my_net)
     # print('parmas: ', count_params(my_net))
     # print('we got a resnet by num lay: ', nbr_layers, 'filters: ', filters, 'blocks: ', blocks)
-    loss = trainer(my_net, train_loader, test_loader, device, epochs=1)
+    loss = trainer(my_net, train_loader, test_loader, device, epochs=10)
     """
     dataiter = iter(train_loader)
     images, labels = dataiter.next()
@@ -441,7 +441,7 @@ def main():
     # HyperMapper runs the optimization procedure with ResNet_function as objective and parameters_file as Search Space
     hypermapper.optimize(parameters_file, ResNet_function)
     print('this entire procedure took ', (time.perf_counter() - t_start) / 60, 'minutes')
-    print('End of ResNet')
+    # print('End of ResNet')
 
 
 if __name__ == "__main__":
