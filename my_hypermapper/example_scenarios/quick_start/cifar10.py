@@ -41,10 +41,10 @@ def get_data_loaders(train_batch_size, test_batch_size, size=(32, 32)):
     transform_test = Compose([Resize(size), ToTensor(),
                               Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
-    train_loader = DataLoader(CIFAR10('data/', download=True, transform=transform_train, train=True),
+    train_loader = DataLoader(CIFAR10('data/', download=False, transform=transform_train, train=True),
                               batch_size=train_batch_size, shuffle=True, num_workers=2)
 
-    test_loader = DataLoader(CIFAR10('data/', download=True, transform=transform_test, train=False),
+    test_loader = DataLoader(CIFAR10('data/', download=False, transform=transform_test, train=False),
                              batch_size=test_batch_size, shuffle=False, num_workers=2)
 
     classes = ('plane', 'car', 'bird', 'cat',
@@ -83,7 +83,8 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
 
         norm_layer = nn.BatchNorm2d
-        width = int(planes * (base_width / 64.)) * groups
+        #width = int(planes * (base_width / 64.)) * groups
+        width = planes      # we don't want more filters, just a sparser connection.
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.conv1 = conv1x1(inplanes, width)
         self.bn1 = norm_layer(width)
@@ -121,7 +122,7 @@ class Bottleneck(nn.Module):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1):
         """
         planes is the number of filters we want
         inplanes can differ from planes as we can get inputs from multiple places
@@ -129,14 +130,13 @@ class BasicBlock(nn.Module):
         super(BasicBlock, self).__init__()
 
         norm_layer = nn.BatchNorm2d
-        # groups=1,
         # base_width=64
         # dilation = 1
         # Both self.conv1 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.conv1 = conv3x3(inplanes, planes, stride, groups)
         self.bn1 = norm_layer(planes)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
+        self.conv2 = conv3x3(planes, planes, groups=groups)
         self.bn2 = norm_layer(planes)
         self.downsample = downsample
         self.stride = stride  # what is the point of this
@@ -163,7 +163,7 @@ class BasicBlock(nn.Module):
 # Translates HyperMapper json to pyTorch module
 class json2ResNet(nn.Module):
     # ResNet(BasicBlock, [2, 2, 2, 2])
-    def __init__(self, block, filters, filter_upd, blocks, kernel_size=0, pool=0, reduce=0):
+    def __init__(self, block, filters, filter_upd, groups, blocks, kernel_size=0, pool=0, reduce=0):
         super(json2ResNet, self).__init__()
 
         num_classes = 10
@@ -171,7 +171,7 @@ class json2ResNet(nn.Module):
         self._norm_layer = norm_layer
         self.inplanes = filters  # [0]  # 64
 
-        # self.groups = 1    # This is for ResNeXt, but only used for bottlenecks..
+        self.groups = groups    # This is for ResNeXt, but only used for bottlenecks..
         # self.base_width = 64
         # Filter before residual layers
         if kernel_size == 0:
@@ -252,8 +252,6 @@ class json2ResNet(nn.Module):
     def _make_layer(self, block, planes, blocks, stride=1):
         norm_layer = self._norm_layer
         downsample = None
-        # previous_dilation = 1
-        # dilate=False
 
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
@@ -262,11 +260,11 @@ class json2ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers.append(block(self.inplanes, planes, stride=stride, downsample=downsample, groups=self.groups))
         self.inplanes = planes * block.expansion  # block expansion = 1 for basic block
 
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(self.inplanes, planes, groups=self.groups))
 
         return nn.Sequential(*layers)
 
@@ -368,7 +366,7 @@ def ResNet_function(X):
     batch_size_train = 128
     batch_size_test = 1000
     size = (32, 32)  # ResNet is made for 224, Mnist is 28, Cifar-10 is 32
-    train_loader, test_loader = get_data_loaders(batch_size_train, batch_size_test, size=size)
+    train_loader, test_loader, _ = get_data_loaders(batch_size_train, batch_size_test, size=size)
 
     # nbr_layers = X['n_layers']
     # filters = [X['n_filters0']]
@@ -380,15 +378,21 @@ def ResNet_function(X):
 
     filters = X['n_filters']
     filter_upd = X['filter_upd']
-    # blocks = X['n_blocks']
+
+    group_size = X['group_size']
+    if filters / group_size > 1:
+        groups = int(filters / group_size)
+    else:
+        groups = 1
+
     kernel_size = X['conv0']
     pool = X['pool']
     reduce = X['reduce']
 
     block = BasicBlock if X['block'] == 0 else Bottleneck
 
-    print(X)
-    my_net = json2ResNet(block, filters, filter_upd, blocks, kernel_size=kernel_size, pool=pool, reduce=reduce)
+    # print(X)
+    my_net = json2ResNet(block, filters, filter_upd, groups, blocks, kernel_size=kernel_size, pool=pool, reduce=reduce)
     ### GPU ###
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # Assuming that we are on a CUDA machine, this should print a CUDA device:
@@ -398,15 +402,15 @@ def ResNet_function(X):
     # print(my_net)
     # print('parmas: ', count_params(my_net))
     # print('we got a resnet by num lay: ', nbr_layers, 'filters: ', filters, 'blocks: ', blocks)
-    loss = trainer(my_net, train_loader, test_loader, device, epochs=5)
-    """
+    #loss = trainer(my_net, train_loader, test_loader, device, epochs=5)
+
     dataiter = iter(train_loader)
     images, labels = dataiter.next()
     outputs = my_net(images)
     import numpy.random as rd
     loss = rd.random()
-    """
-    print('accuracy: ', 100 - loss)
+
+    #print('accuracy: ', 100 - loss)
     # print('\n')
     return loss
 
@@ -414,7 +418,7 @@ def ResNet_function(X):
 def main():
     # Change output path in scenario if you are running something serious
     # Right now we run 10 RS and saves output in stupid.csv
-    parameters_file = "example_scenarios/quick_start/resnet_scenario.json"
+    parameters_file = "example_scenarios/quick_start/resnext_scenario.json"
 
     t_start = time.perf_counter()
     # HyperMapper runs the optimization procedure with ResNet_function as objective and parameters_file as Search Space
