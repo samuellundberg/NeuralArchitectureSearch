@@ -25,20 +25,20 @@
             "values": [0.5001, 1, 1.5, 2]
         },
         "n_blocks1": {
-            "parameter_type": "ordinal",
-            "values": [0, 1, 2, 3, 5, 7, 9, 18]
+            "parameter_type": "integer",
+            "values": [0, 18]
         },
         "n_blocks2": {
-            "parameter_type": "ordinal",
-            "values": [0, 1, 2, 3, 5, 7, 9, 18]
+            "parameter_type": "integer",
+            "values": [1, 18]
         },
         "n_blocks3": {
-            "parameter_type": "ordinal",
-            "values": [0, 1, 2, 3, 5, 7, 9, 18]
+            "parameter_type": "integer",
+            "values": [1, 18]
         },
         "n_blocks4": {
-            "parameter_type": "ordinal",
-            "values": [0, 1, 2, 3, 5, 7, 9, 18]
+            "parameter_type": "integer",
+            "values": [1, 18]
         },
         "conv0": {
             "parameter_type": "categorical",
