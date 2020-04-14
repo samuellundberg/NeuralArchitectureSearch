@@ -163,7 +163,7 @@ class BasicBlock(nn.Module):
 # Translates HyperMapper json to pyTorch module
 class json2ResNet(nn.Module):
     # ResNet(BasicBlock, [2, 2, 2, 2])
-    def __init__(self, block, filters, filter_upd, groups, blocks, kernel_size=0, pool=0, reduce=0):
+    def __init__(self, block, filters, filter_upd, groups, blocks, kernel_size, pool, reduce):
         super(json2ResNet, self).__init__()
 
         num_classes = 10
@@ -368,8 +368,6 @@ def ResNet_function(X):
     size = (32, 32)  # ResNet is made for 224, Mnist is 28, Cifar-10 is 32
     train_loader, test_loader, _ = get_data_loaders(batch_size_train, batch_size_test, size=size)
 
-    # nbr_layers = X['n_layers']
-    # filters = [X['n_filters0']]
     blocks = []
     # We only use the n_layers first parameters. use the active-stategy?
     for idx in range(4):
@@ -392,7 +390,7 @@ def ResNet_function(X):
     block = BasicBlock if X['block'] == 0 else Bottleneck
 
     # print(X)
-    my_net = json2ResNet(block, filters, filter_upd, groups, blocks, kernel_size=kernel_size, pool=pool, reduce=reduce)
+    my_net = json2ResNet(block, filters, filter_upd, groups, blocks, kernel_size, pool, reduce)
     ### GPU ###
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # Assuming that we are on a CUDA machine, this should print a CUDA device:

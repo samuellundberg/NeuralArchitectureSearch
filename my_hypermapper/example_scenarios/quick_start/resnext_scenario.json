@@ -46,15 +46,15 @@
         },
         "conv0": {
             "parameter_type": "categorical",
-            "values": ["3", "7"]
+            "values": ["3"]
         },
         "pool": {
             "parameter_type": "categorical",
-            "values": ["no", "yes"]
+            "values": ["no"]
         },
         "reduce": {
             "parameter_type": "categorical",
-            "values": ["yes", "no"]
+            "values": ["yes"]
         }
     }
 }
