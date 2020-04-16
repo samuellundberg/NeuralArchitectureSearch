@@ -1,7 +1,7 @@
 {
     "application_name": "resnext",
     "optimization_objectives": ["Value"],
-    "output_data_file": "stupid.csv",
+    "output_data_file": "resnextRS100.csv",
     "optimization_method": "random_scalarizations",
     "evolution_population_size": 3,
     "evolution_generations": 1,
@@ -12,37 +12,48 @@
     "optimization_iterations": 0,
 
     "input_parameters": {
-        "block": {
+        "epochs": {
+            "parameter_type": "ordinal",
+            "values": [5]
+        },"block": {
             "parameter_type": "categorical",
-            "values": ["basic", "bottleneck"]
+            "values": ["basic", "bottleneck"],
+            "parameter_default" : "basic"
         },
         "group_size": {
             "parameter_type": "ordinal",
-            "values": [1, 2, 4, 8, 32]
+            "values": [1, 2, 4, 8, 32],
+            "parameter_default" : 32
         },
         "n_filters": {
             "parameter_type": "ordinal",
-            "values": [1, 2, 4, 8, 16, 32]
+            "values": [1, 2, 4, 8, 16, 32],
+            "parameter_default" : 1
         },
         "filter_upd": {
             "parameter_type": "ordinal",
-            "values": [1, 2]
+            "values": [1, 2],
+            "parameter_default" : 1
         },
         "n_blocks1": {
             "parameter_type": "integer",
-            "values": [0, 18]
+            "values": [0, 18],
+            "parameter_default" : 0
         },
         "n_blocks2": {
             "parameter_type": "integer",
-            "values": [1, 18]
+            "values": [1, 18],
+            "parameter_default" : 1
         },
         "n_blocks3": {
             "parameter_type": "integer",
-            "values": [1, 18]
+            "values": [1, 18],
+            "parameter_default" : 1
         },
         "n_blocks4": {
             "parameter_type": "integer",
-            "values": [1, 18]
+            "values": [1, 18],
+            "parameter_default" : 1
         },
         "conv0": {
             "parameter_type": "categorical",
