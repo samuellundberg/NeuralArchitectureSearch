@@ -3,26 +3,34 @@ import torch.nn as nn
 import time
 
 import torch.optim as optim
+from torch.optim.lr_scheduler import MultiStepLR
 
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomCrop, RandomHorizontalFlip
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
-def get_data_loaders(train_batch_size, test_batch_size, size=(224,224)):
+
+def get_data_loaders(train_batch_size, test_batch_size):
     # Augments data like 4.2 in resnetpaper, is normalization right??
-    transform_train = Compose([RandomHorizontalFlip(), Resize(size), RandomCrop(32, padding=4),
+    transform_train = Compose([RandomHorizontalFlip(), RandomCrop(32, padding=4),
                                ToTensor(), Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-    transform_test = Compose([Resize(size), ToTensor(),
+    transform_test = Compose([ToTensor(),
                               Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
-    train_loader = DataLoader(CIFAR10('data/', download=False, transform=transform_train, train=True),
+    train_data, validation_data = random_split(
+        CIFAR10('data/', download=False, transform=transform_train, train=True), [45000, 5000])
+
+    train_loader = DataLoader(train_data,
                               batch_size=train_batch_size, shuffle=True, num_workers=2)
+
+    validation_loader = DataLoader(validation_data,
+                                   batch_size=test_batch_size, shuffle=True, num_workers=2)
 
     test_loader = DataLoader(CIFAR10('data/', download=False, transform=transform_test, train=False),
                              batch_size=test_batch_size, shuffle=False, num_workers=2)
 
-    print('loaded the mnist data')
-    return train_loader, test_loader
+    print('loaded the data')
+    return train_loader, validation_loader, test_loader
 
 # counts trainable weights in a model
 def count_params(model):
@@ -167,76 +175,70 @@ class ResNet(nn.Module):
         return self._forward_impl(x)
 
 
-def train(network, train_loader, test_loader, device, epochs):
+def train(network, train_loader, validation_loader, device, epochs):
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(network.parameters())
-
+    optimizer = optim.SGD(network.parameters(), lr=0.1, momentum=0.9, dampening=0,
+                          weight_decay=0.0001, nesterov=False)
+    scheduler = MultiStepLR(optimizer, milestones=[91, 136], gamma=0.1)
     t0 = time.perf_counter()
     network.to(device)
 
     for epoch in range(epochs):  # loop over the dataset multiple times
-
-        running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data[0].to(device), data[1].to(device)
 
             # zero the parameter gradients
             optimizer.zero_grad()
+
             # forward + backward + optimize
             outputs = network(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
-            # print statistics
-            #running_loss += loss.item()
-            #if i % 100 == 99:  # print every 20 mini-batches
-             #   print('[%d, %5d] loss: %.3f' %
-              #        (epoch + 1, i + 1, running_loss / 100))
-               # running_loss = 0.0
+        scheduler.step()
+
+        # print statistics
         if epoch % 10 == 9:
-            validate(network, test_loader, device, t0, epoch=epoch+1)
+            validate(network, validation_loader, device, epoch+1, t0=t0)
 
     print('Finished Training it took ', (time.perf_counter() - t0) / 60, ' minutes to train')
 
 
-def validate(network, test_loader, device, t0, epoch=0):
+def validate(network, data_loader, device, epoch, t0=0):
     correct = 0
     total = 0
     with torch.no_grad():
-        for data in test_loader:
+        for data in data_loader:
             inputs, labels = data[0].to(device), data[1].to(device)
             outputs = network(inputs)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    print('Accuracy of the network on the 10000 test images: %f %%' % (
-                100 * correct / total))
-    print('Have trained ', epoch, ' out of 160 epochs in ', (time.perf_counter() - t0)/3600, ' hours')
+    accuracy = 100 * correct / total
+    if epoch == -1:
+        print('Accuracy of the network on the 10000 test images: %f %%' % accuracy)
+    else:
+        print('Have trained ', epoch, ' out of 160 epochs in ', (time.perf_counter() - t0)/3600,
+              ' hours. val acc: ', accuracy)
 
 
-n_epochs = 160
+n_epochs = 182
 batch_size_train = 128
 batch_size_test = 1000
-size = (32,32)     # ResNet is made for 224, Mnist is 28, Cifar-10 is 32
-train_loader, test_loader = get_data_loaders(batch_size_train, batch_size_test, size=size)
+train_loader, validation_loader, test_loader = get_data_loaders(batch_size_train, batch_size_test)
 
 # Call RNsmall
 n = 18
 print('small resnet of deepth ', 6*n + 2)
 
-resnetGPU = ResNet(BasicBlock, [n,n,n])
-print('params: ', count_params(resnetGPU))
-deviceG = torch.device("cuda:0")
+resnet = ResNet(BasicBlock, [n,n,n])
+print('params: ', count_params(resnet))
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Assuming that we are on a CUDA machine, this should print a CUDA device:
-print('device: ', deviceG.type)
-train(resnetGPU, train_loader, test_loader, deviceG, n_epochs)
-"""
-resnetCPU = ResNet(BasicBlock, [n,n,n,n])
-print('params: ', count_params(resnetCPU))
-deviceC = torch.device("cpu")
-print('device: ', deviceC.type)
-train(resnetCPU, train_loader, deviceC, n_epochs)
-"""
+print('device: ', device.type)
+train(resnet, train_loader, validation_loader, device, n_epochs)
+
+validate(resnet, test_loader, device, -1)
