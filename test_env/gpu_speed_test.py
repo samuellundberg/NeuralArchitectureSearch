@@ -93,7 +93,7 @@ class ResNet(nn.Module):
 
         norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
-        self.inplanes = 32
+        self.inplanes = 16
 
         self.groups = 1
         self.base_width = 64
@@ -105,14 +105,14 @@ class ResNet(nn.Module):
         # self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         # ResNet
-        self.layer1 = self._make_layer(block, 32, layers[0])
-        self.layer2 = self._make_layer(block, 64, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 128, layers[2], stride=2)
-        self.layer4 = self._make_layer(block, 256, layers[3], stride=2)
+        self.layer1 = self._make_layer(block, 16, layers[0])
+        self.layer2 = self._make_layer(block, 32, layers[1], stride=2)
+        self.layer3 = self._make_layer(block, 64, layers[2], stride=2)
+        # self.layer4 = self._make_layer(block, 128, layers[3], stride=2)
 
         # Slutfas
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(256 * block.expansion, num_classes)
+        self.fc = nn.Linear(64 * block.expansion, num_classes)
 
         # What is this???
         for m in self.modules():
@@ -155,7 +155,7 @@ class ResNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        x = self.layer4(x)
+        # x = self.layer4(x)
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
@@ -214,7 +214,7 @@ def validate(network, test_loader, device, t0, epoch=0):
 
     print('Accuracy of the network on the 10000 test images: %f %%' % (
                 100 * correct / total))
-    print('Have trained ', epoch, ' out of 160 epochs in ', (time.perf_counter() - t0), ' hours')
+    print('Have trained ', epoch, ' out of 160 epochs in ', (time.perf_counter() - t0)/3600, ' hours')
 
 
 n_epochs = 160
@@ -225,9 +225,9 @@ train_loader, test_loader = get_data_loaders(batch_size_train, batch_size_test, 
 
 # Call RNsmall
 n = 18
-print('small resnet of deepth ', 8*n + 2)
+print('small resnet of deepth ', 6*n + 2)
 
-resnetGPU = ResNet(BasicBlock, [n,n,n,n])
+resnetGPU = ResNet(BasicBlock, [n,n,n])
 print('params: ', count_params(resnetGPU))
 deviceG = torch.device("cuda:0")
 # Assuming that we are on a CUDA machine, this should print a CUDA device:
