@@ -18,7 +18,7 @@ import torchvision
 from torchvision import datasets, transforms
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import Compose, ToTensor, Normalize, Resize, RandomCrop, RandomHorizontalFlip
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 
 import json
 from subprocess import Popen, PIPE
@@ -41,8 +41,14 @@ def get_data_loaders(train_batch_size, test_batch_size, size=(32, 32)):
     transform_test = Compose([Resize(size), ToTensor(),
                               Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
-    train_loader = DataLoader(CIFAR10('data/', download=False, transform=transform_train, train=True),
+    train_data, validation_data = random_split(
+        CIFAR10('data/', download=False, transform=transform_train, train=True), [45000, 5000])
+
+    train_loader = DataLoader(train_data,
                               batch_size=train_batch_size, shuffle=True, num_workers=2)
+
+    validation_loader = DataLoader(validation_data,
+                                   batch_size=test_batch_size, shuffle=True, num_workers=2)
 
     test_loader = DataLoader(CIFAR10('data/', download=False, transform=transform_test, train=False),
                              batch_size=test_batch_size, shuffle=False, num_workers=2)
@@ -50,7 +56,8 @@ def get_data_loaders(train_batch_size, test_batch_size, size=(32, 32)):
     classes = ('plane', 'car', 'bird', 'cat',
                'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-    return train_loader, test_loader, classes
+    #print('loaded the data')
+    return train_loader, validation_loader, test_loader, classes
 
 
 # counts trainable weights in a model
@@ -296,7 +303,7 @@ class json2ResNet(nn.Module):
 
 
 # Trains network and returns validation performance
-def trainer(network, train_data, test_data, device, epochs=1):
+def trainer(network, train_loader, validation_loader, device, epochs=1):
     # Always uses cross entropy as loss function
     criterion = nn.CrossEntropyLoss()
     # optimizer = optim.Adam(network.parameters())
@@ -305,18 +312,18 @@ def trainer(network, train_data, test_data, device, epochs=1):
                           weight_decay=0.0001, nesterov=False)
     """
     How I want the learning rate:
-    lr = 0.1 for epoch <80 
-    lr = 0.01 for epoch 80-120
-    lr = 0.001 for epoch >120
+    lr = 0.1 for epoch <91 
+    lr = 0.01 for epoch 91-136
+    lr = 0.001 for epoch >182
     lr = 0.01 for first epoch to warm up training if network is deep
     """
-    scheduler = MultiStepLR(optimizer, milestones=[80, 120], gamma=0.1)
+    scheduler = MultiStepLR(optimizer, milestones=[91, 136], gamma=0.1)
 
     t0 = time.perf_counter()
     for epoch in range(epochs):  # loop over the dataset multiple times
-        running_loss = 0.0
-        scheduler.step()
-        for i, data in enumerate(train_data, 0):
+        # running_loss = 0.0
+
+        for i, data in enumerate(train_loader, 0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data[0].to(device), data[1].to(device)
 
@@ -330,29 +337,40 @@ def trainer(network, train_data, test_data, device, epochs=1):
             optimizer.step()
 
             # print statistics
-            running_loss += loss.item()
-            if i % 100 == 99:  # print every 200 mini-batches
+            # running_loss += loss.item()
+            # if i % 100 == 99:  # print every 200 mini-batches
                 # print('[%d, %5d] loss: %.3f' %
                 #       (epoch + 1, i + 1, running_loss / 100))
-                running_loss = 0.0
+            #     running_loss = 0.0
+        scheduler.step()
+        #if epoch % 10 == 9:
+            # validate(network, validation_loader, device, epoch+1, t0=t0)
 
-    print('Finished Training it took ', (time.perf_counter() - t0) / 60, ' minutes to train')
+    error = validate(network, validation_loader, device, -1)
+    print('Validation acc ', 100-error, '. Training time ', (time.perf_counter() - t0) / 60, ' min')
 
-    # Validates performance on unseen data
+    return error
+    # return 100 * (1 - correct / total)    # 1 - accuracy for minimization
+
+def validate(network, data_loader, device, epoch, t0=0):
     correct = 0
     total = 0
     with torch.no_grad():
-        for data in test_data:
-            images, labels = data[0].to(device), data[1].to(device)
-            outputs = network(images)
+        for data in data_loader:
+            inputs, labels = data[0].to(device), data[1].to(device)
+            outputs = network(inputs)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    # print('Accuracy of the network on the 10000 test images: %d %%' % (
-    #   100 * correct / total))
+    accuracy = 100 * correct / total
+    # if epoch == -1:
+        # print('Accuracy of the network on the 10000 test images: %f %%' % accuracy)
+    # else:
+        # print('Have trained ', epoch, ' out of 160 epochs in ', (time.perf_counter() - t0)/3600,
+          #    ' hours. val acc: ', accuracy)
 
-    return 100 * (1 - correct / total)    # 1 - accuracy for minimization
+    return 100 - accuracy
 
 # Objective function for HyperMapper to optimize
 def ResNet_function(X):
@@ -366,7 +384,7 @@ def ResNet_function(X):
     batch_size_train = 128
     batch_size_test = 1000
     size = (32, 32)  # ResNet is made for 224, Mnist is 28, Cifar-10 is 32
-    train_loader, test_loader, _ = get_data_loaders(batch_size_train, batch_size_test, size=size)
+    train_loader, validation_loader, test_loader, _ = get_data_loaders(batch_size_train, batch_size_test, size=size)
 
     blocks = []
     # We only use the n_layers first parameters. use the active-stategy?
@@ -386,7 +404,7 @@ def ResNet_function(X):
     kernel_size = X['conv0']
     pool = X['pool']
     reduce = X['reduce']
-
+    epochs = X['epochs']
     block = BasicBlock if X['block'] == 0 else Bottleneck
 
     # print(X)
@@ -400,17 +418,12 @@ def ResNet_function(X):
     # print(my_net)
     # print('parmas: ', count_params(my_net))
     # print('we got a resnet by num lay: ', nbr_layers, 'filters: ', filters, 'blocks: ', blocks)
-    #loss = trainer(my_net, train_loader, test_loader, device, epochs=5)
+    error = trainer(my_net, train_loader, validation_loader, device, epochs=epochs)
 
-    dataiter = iter(train_loader)
-    images, labels = dataiter.next()
-    outputs = my_net(images)
-    import numpy.random as rd
-    loss = rd.random()
 
-    #print('accuracy: ', 100 - loss)
+    # print('accuracy: ', 100 - error)
     # print('\n')
-    return loss
+    return error
 
 
 def main():
