@@ -15,18 +15,6 @@ import matplotlib
 #matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
 
-
-# Just to see how to document properly
-def arbitrary_function(arg1, arg2):
-    """
-    Explain what I do
-    :param arg1: I do this.
-    :param arg2: I do that.
-    :return: What is my data type and what do I contain.
-    """
-    return 0
-
-
 def get_best_config(configs):
     """
     Returns the configuration with lowest Value among the given configurations
@@ -40,12 +28,13 @@ def get_best_config(configs):
     return leader
 
 
-def mutation(param_space, config, mutationrate = 0.1):
+def mutation(param_space, config, mutationrate):
     """
     Mutates one configuration. This overcomplicates the procedure. But since I might
     change the functionality I leave it like this for now
     :param param_space: space.Space(), will give us imprmation about parameters
     :param configs: list of configurations.
+    :param mutationrate: integer for how many parameters to mutate
     :return: dict, the configuration with a possible mutation
     """
     parameter_object_list = param_space.get_input_parameters_objects()
@@ -80,21 +69,22 @@ def mutation(param_space, config, mutationrate = 0.1):
             new_val = values[idx]
             # print('ord val? ', new_val)
         else:
-            print('error in parameter type, exiting..')
+            print('error in type of parameter', name, ' exiting..')
             sys.exit()
 
         new_config[name] = new_val
     print('old:    ', config, 'new:    ', new_config)
     # print('old: ', config)
 
-    if rd.uniform() < mutationrate:
-        parameter_names_list = param_space.get_input_parameters()
-        nbr_params = len(parameter_names_list)
-        idx = rd.randint(nbr_params)
+    # adapted to mutation rate being an integer ≥1
+    parameter_names_list = param_space.get_input_parameters()
+    nbr_params = len(parameter_names_list)
+    indices = rd.randint(0, nbr_params, mutationrate)
+    for idx in indices:
         mutation_param = parameter_names_list[idx]
         # Should I do something if they are the same?
         config[mutation_param] = new_config[mutation_param]
-        print('mutated: ', config)
+    print('mutated: ', config)
 
     # OrderedDict([('x1', <space.RealParameter object at 0x118a25080>), ('x2', <space.RealParameter object at 0x1a1accf470>)])
     # param_objs = optimization_function_parameters["param_space"].get_input_parameters_objects()
