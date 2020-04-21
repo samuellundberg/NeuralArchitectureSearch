@@ -235,42 +235,29 @@ def evolution(population_size, generations, mutation_rate, param_space, fast_add
     s = 2                   # Real 1: s=2. Real 2: s can be bigger. how much?
     for gen in range(1, generations + 1):
         print('\n\ngeneration ', gen)
-        """
-        # If I want to remember age I should not pop both
-        cand1 = population.pop(len(population))
-        cand2 = population.pop(len(population))
-
-        parent = cand1 if cand1['Value'] < cand2['Value'] else cand2
-        population.append(parent)
-        """
-        # without popping both
-        cand1, cand2 = rd.randint(0, len(population), s)
-        if population[cand1]['Value'] < population[cand2]['Value']:
-            parent = population[cand1]
-            population.pop(cand2)
-        else:
-            parent = population[cand2]
-            population.pop(cand1)
-
 
         # work for bigger s
         cand_idxs = rd.randint(0, len(population), s)
-        best = (-1, 100)
-        worst = (-1, 0)
+        infty = float("inf")
+        best = (-1, infty)
+        worst = (-1, -infty)
         for ci in cand_idxs:
             val = population[ci]['Value']
             if val < best[1]:
                 best = (ci, val)
             if val > worst[1]:
                 worst = (ci, val)
+        # checks that candidate loop was successful
+        if best[0] < 0 or worst[0] < 0:
+            print('failed to fined best and/or worst individual. Script will terminate')
+            sys.exit()
+
         parent = population[best[0]]
 
         if regularized:     # removing oldest, which will be first as we append new last
             killed = population.pop(0)
         else:               # removing the worst in the subset
             killed = population.pop(worst[0])
-        population.pop(cand1)
-
 
         print('\n this one was killed of: ', killed)
         if not gen % 10 and gen > 0:
