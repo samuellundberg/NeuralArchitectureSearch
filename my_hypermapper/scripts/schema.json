@@ -266,6 +266,11 @@
         "description": "probability for a mutation (This is not a good setting). added by Samuel",
         "default": 1
       },
+      "evolution_crossover":{
+        "type": "boolean",
+        "description": "whether to use crossover in the algorithm. added by Samuel",
+        "default": true
+      },
       "regularize_evolution":{
         "type": "boolean",
         "description": "whether to regularize (kill the oldest) the evolution. added by Samuel",
