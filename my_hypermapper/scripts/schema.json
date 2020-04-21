@@ -200,8 +200,8 @@
       },
       "optimization_method":{
         "type": "string",
-        "description": "Method to use for the multi-objective optimization in Hypermapper. evolution added by Samuel",
-        "enum": ["random_scalarizations", "local_search", "evolution"],
+        "description": "Method to use for the multi-objective optimization in Hypermapper. (nr_)evolution added by Samuel",
+        "enum": ["random_scalarizations", "local_search", "evolution", "nr_evolution"],
         "default": "random_scalarizations"
       },
       "local_search_starting_points":{
@@ -265,6 +265,16 @@
         "type": "integer",
         "description": "probability for a mutation (This is not a good setting). added by Samuel",
         "default": 1
+      },
+      "regularize_evolution":{
+        "type": "boolean",
+        "description": "whether to regularize (kill the oldest) the evolution. added by Samuel",
+        "default": false
+      },
+      "batch_size":{
+        "type": "integer",
+        "description": "number of samples to pick and compare in the evolutionary loop. added by Samuel",
+        "default": 2
       }
     },
     "additionalProperties": false,
