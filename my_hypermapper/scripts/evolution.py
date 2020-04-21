@@ -12,8 +12,9 @@ from collections import defaultdict
 from scipy import stats
 import numpy.random as rd
 import matplotlib
-#matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
+
 
 def get_best_config(configs):
     """
@@ -79,14 +80,15 @@ def mutation(param_space, config, mutationrate):
     # adapted to mutation rate being an integer ≥1
     parameter_names_list = param_space.get_input_parameters()
     nbr_params = len(parameter_names_list)
-    indices = rd.randint(0, nbr_params, mutationrate)
+    # indices = rd.randint(0, nbr_params, mutationrate)
+    indices = rd.permutation(nbr_params)[:mutationrate]
     for idx in indices:
         mutation_param = parameter_names_list[idx]
         # Should I do something if they are the same?
         config[mutation_param] = new_config[mutation_param]
     print('mutated: ', config)
 
-    # OrderedDict([('x1', <space.RealParameter object at 0x118a25080>), ('x2', <space.RealParameter object at 0x1a1accf470>)])
+    # OrderedDict([('x1', <space.RealParameter object at 0x118a25080>), ('x2', <space.RealParameter object at ...>)])
     # param_objs = optimization_function_parameters["param_space"].get_input_parameters_objects()
     # param_obj = param_objs['x1']
     # print(param_obj.get_min())
@@ -116,12 +118,13 @@ def run_objective_function(
     :param beginning_of_time: timestamp of when the optimization started.
     :param run_directory: directory where HyperMapper is running.
     :param evolution_data_array: a dictionary containing all of the configurations that have been evaluated.
-    :param fast_addressing_of_data_array: a dictionary containing evaluated configurations and their index in the evolution_data_array.
+    :param fast_addressing_of_data_array: a dictionary containing evaluated configurations and their index in
+    the evolution_data_array.
     :param x enable_feasible_predictor: whether to use constrained optimization.
     :param (x) evaluation_limit: the maximum number of function evaluations allowed for the evolutionary search.
     :param black_box_function: the black_box_function being optimized in the evolutionary search.
     :param number_of_cpus: an integer for the number of cpus to be used in parallel.
-    :return: configurations with evaluations for all points in configurations and the number of evaluated configurations.
+    :return: configurations with evaluations for all points in configurations and the number of evaluated configurations
     """
     new_configurations = []
     new_evaluations = {}
@@ -165,26 +168,31 @@ def run_objective_function(
         fast_addressing_of_data_array[str_data] = absolute_configuration_index
         absolute_configuration_index += 1
 
-    #print('\nev_da post: ', evolution_data_array)
-    #print('\npop: ', population)
-
-    sys.stdout.write_to_logfile(("Time to run new configurations %10.4f sec\n" % ((datetime.datetime.now() - t1).total_seconds())))
-    sys.stdout.write_to_logfile(("Total time to run configurations %10.4f sec\n" % ((datetime.datetime.now() - t0).total_seconds())))
+    sys.stdout.write_to_logfile(("Time to run new configurations %10.4f sec\n" %
+                                 ((datetime.datetime.now() - t1).total_seconds())))
+    sys.stdout.write_to_logfile(("Total time to run configurations %10.4f sec\n" %
+                                 ((datetime.datetime.now() - t0).total_seconds())))
 
     # return list(scalarized_values), feasibility_indicators
     return population, all_evaluations_size
 
 
-def evolution(population_size, generations, mutation_rate, param_space, fast_addressing_of_data_array,
-              optimization_function, optimization_function_parameters):
+def evolution(population_size, generations, mutation_rate, crossover, regularize, batch_size, param_space,
+              fast_addressing_of_data_array, optimization_function, optimization_function_parameters):
 
     """
     Do the entire evolutinary process from config to best config
     :param population_size: an integer for the number of configs to keep. All will be initiated randomly
     :param generations: an integer for the number of iterations through the evolutionary loop
+    :param mutation_rate: an integer for the number of parameters to change in a mutation
+    :param crossover: a boolean whether to use crossover in the algorithm
+    :param regularize: boolean, whether to use regularized or non-regularized evolution strategy
+    :param batch_size: an integer for how many individuals to compare in a generation
     :param param_space: a space object containing the search space.
+    :param fast_addressing_of_data_array: an array that keeps track of all evaluated configurations
     :param optimization_function: the function that will be optimized by the evolutionary search.
-    :param optimization_function_parameters: a dictionary containing the parameters that will be passed to the optimization function.
+    :param optimization_function_parameters: a dictionary containing the parameters that will be passed to the
+    optimization function.
     :return: all points evaluted and the best config at each generation of the Evolutionary Algorithm.
     """
 
@@ -196,18 +204,6 @@ def evolution(population_size, generations, mutation_rate, param_space, fast_add
     # How does it differ from *_data_array in the **dict?
     data_array = {}
     # end_of_search = False
-
-    # 1. Get a population by taking random samples
-    # 2. evolutionary loop
-    #   3. evaluate fitness
-    #   4. update population
-    #       5. crossover
-    #       6. mutation
-    #       7. random sampling
-    # return best config. and all seen samples
-
-    # 1
-    # data_array = concatenate_data_dictionaries(data_array, new_data_array)
 
     # I think the point of this is to always get the default configuration, if there is one
     default_configuration = param_space.get_default_or_random_configuration()
@@ -244,81 +240,86 @@ def evolution(population_size, generations, mutation_rate, param_space, fast_add
     best_config = get_best_config(population)
     best_configs.append(best_config)
 
+    # regularized = False (regularize) Real 2. remove oldest instead of worst.
+    # s = 2 (batch_size) Real 1: s=2. Real 2: s can be bigger. how much?
 
-
-    # Jag tror jag har tagit det jag vill ha av delen fore best improvement local search
-    # 2
     for gen in range(1, generations + 1):
-        matching_list = rd.permutation(function_values_size) # population size
-        new_population = list()
         print('\n\ngeneration ', gen)
-        # 3, 4
-        for i in range(0, function_values_size - 2, 3):
-            triple = [matching_list[i], matching_list[i+1], matching_list[i+2]]
-            values = []
-            for t in triple:
-                values.append(population[t]['Value'])
 
-            for i, t in enumerate(triple):
-                if values[i] != max(values):
-                    new_population.append(population[t])
-        # Add those how the loop did not reach, could be done in the first loop
-        for i in range(function_values_size % 3):
-            new_population.append(population[matching_list[-1-i]])
+        cand_idxs = rd.permutation(len(population))[:batch_size]
+        infty = float("inf")
+        best = (-1, infty)
+        second = (-1, infty)
+        worst = (-1, -infty)
+        for ci in cand_idxs:
+            val = population[ci]['Value']
+            if val < best[1]:
+                second = best
+                best = (ci, val)
+            elif val < second[1]:
+                second = (ci, val)
+            if val > worst[1]:
+                worst = (ci, val)
+        # checks that candidate loop was successful
+        if min(best[0], second[0], worst[0]) < 0:
+            print('failed to fined best and/or worst individual. Script will terminate')
+            sys.exit()
 
-        print('\n survivors: ', new_population)
         if not gen % 10 and gen > 0:
             print('Now we are att gen: ', gen)
 
-        # 5
-        # Fill up the free spots with crossover
-        children = []
-        for i in range(population_size - len(new_population)):
-            x = new_population[2 * i]
-            y = new_population[2 * i + 1]
-            xy = dict()
-            # Takes parameter values at random from parents
+        # Make childs by copy and mutate of parent and add to pop
+        child = dict()
+        parent = population[best[0]]
+        if crossover:
+            parent2 = population[second[0]]
             for param in input_params:
                 if rd.uniform(0, 1) < 0.5:
-                    xy[param] = x[param]
+                    child[param] = parent[param]
                 else:
-                    xy[param] = y[param]
-            # 6
-            print('Brave me now tries the mutation')
-            xy = mutation(param_space, xy, mutationrate=mutation_rate)
+                    child[param] = parent2[param]
+        else:
+            for param in input_params:
+                child[param] = parent[param]
 
-            # children should be added to fada somehow
-            children.append(xy)
+        child = mutation(param_space, child, mutation_rate)
 
+        # children should be added to fada somehow
+        child_list = [child]
         print('\nchildren: ')
 
-        evaluated_children, func_val_size = optimization_function(configurations=children,
-                                                                  **optimization_function_parameters)
+        evaluated_child_list, func_val_size = optimization_function(configurations=child_list,
+                                                                    **optimization_function_parameters)
 
-        for evaluated_child in evaluated_children:
-            new_population.append(evaluated_child)
+        for evaluated_child in evaluated_child_list:
+            population.append(evaluated_child)
 
         # 7
-        # If some children are copies of their parent they will not be evaluated or added
+        # If a child is already seen
         # When we draw some random configurations instead
-        missing_childs = len(children) - len(evaluated_children)
-        if missing_childs > 0:
-            random_children = param_space.random_sample_configurations_without_repetitions(tmp_fast_addressing_of_data_array,
-                                                                                           missing_childs)
+        missing_child = len(child_list) - len(evaluated_child_list)
+        if missing_child > 0:
+            random_children = param_space.random_sample_configurations_without_repetitions(
+                tmp_fast_addressing_of_data_array,
+                missing_child)
             print('\nevaluated random children: ')
             evaluated_random_children, func_val_size = optimization_function(configurations=random_children,
                                                                              **optimization_function_parameters)
 
             for evaluated_r_child in evaluated_random_children:
-                new_population.append(evaluated_r_child)
+                population.append(evaluated_r_child)
 
-        best_config = get_best_config(new_population)
+        if regularize:     # removing oldest, which will be first as we append new last
+            killed = population.pop(0)
+        else:               # removing the worst in the subset
+            killed = population.pop(worst[0])
+
+        print('\n this one was killed of: ', killed)
+
+        best_config = get_best_config(population)
         best_configs.append(best_config)
 
-        population = new_population
         print('\nupdated pop: ', population)
-
-
 
     best_configuration = 0      # Do we need this? I want this for each generation
     print('')
@@ -331,6 +332,7 @@ def main(config, black_box_function=None, output_file=""):
     """
     Run design-space exploration using evolution.
     :param config: dictionary containing all the configuration parameters of this design-space exploration.
+    :param black_box_function: The function hypermapper seeks to optimize
     :param output_file: a name for the file used to save the dse results.
     :return:
     """
@@ -362,7 +364,23 @@ def main(config, black_box_function=None, output_file=""):
     generations = config["evolution_generations"]
     # can I have non-int params? string?
     mutation_rate = config["mutation_rate"]
-
+    if mutation_rate > len(param_space.get_input_parameters()):
+        print("mutation rate higher than the number of parameters. makes no sense. Exiting")
+        sys.exit()
+    if mutation_rate < 1:
+        print("mutation rate must be at least 1 for evolution to work. Exiting")
+    crossover = config["evolution_crossover"]
+    regularize = config["regularize_evolution"]
+    batch_size = config["batch_size"]
+    if batch_size > population_size:
+        print("batch_size bigger than the population_size. makes no sense. Exiting")
+        sys.exit()
+    elif batch_size < 2 and not crossover:
+        print("batch_size smaller than 2 makes no sense. Exiting")
+        sys.exit()
+    elif batch_size < 3 and crossover:
+        print("batch_size must be at least 3 when using crossover . Exiting")
+        sys.exit()
     ### End of hyperparameter assigning ###
 
     # This could be good to keep. but doubt I will need it
@@ -379,7 +397,6 @@ def main(config, black_box_function=None, output_file=""):
     else:
         output_data_file = output_file
 
-
     # I want something equivalent to this
     absolute_configuration_index = 0
     fast_addressing_of_data_array = {}
@@ -388,7 +405,7 @@ def main(config, black_box_function=None, output_file=""):
 
     beginning_of_time = param_space.current_milli_time()
 
-    optimization_function_parameters = {}
+    optimization_function_parameters = dict()
     # optimization_function_parameters['hyper_parameter_x'] = hyper_parameter_x
     optimization_function_parameters['hypermapper_mode'] = hypermapper_mode
     optimization_function_parameters['param_space'] = param_space
@@ -397,19 +414,19 @@ def main(config, black_box_function=None, output_file=""):
     optimization_function_parameters['black_box_function'] = black_box_function
     optimization_function_parameters['evolution_data_array'] = evolution_data_array
     optimization_function_parameters['fast_addressing_of_data_array'] = evolution_fast_addressing_of_data_array
-    #optimization_function_parameters['evaluation_limit'] = local_search_evaluation_limit
+    # optimization_function_parameters['evaluation_limit'] = local_search_evaluation_limit
 
     # Unsure about these
-    #optimization_function_parameters['number_of_cpus'] = number_of_cpus
-    #optimization_function_parameters['enable_feasible_predictor'] = enable_feasible_predictor
+    # optimization_function_parameters['number_of_cpus'] = number_of_cpus
+    # optimization_function_parameters['enable_feasible_predictor'] = enable_feasible_predictor
 
     # I think this is unnecessary
     # optimization_function_parameters['exhaustive_search_data_array'] = exhaustive_search_data_array
-    # optimization_function_parameters[
-        # 'exhaustive_search_fast_addressing_of_data_array'] = exhaustive_search_fast_addressing_of_data_array
-    #optimization_function_parameters['scalarization_weights'] = objective_weights
-    #optimization_function_parameters['objective_limits'] = objective_limits
-    #optimization_function_parameters['scalarization_method'] = scalarization_method
+    # optimization_function_parameters['exhaustive_search_fast_addressing_of_data_array'] =
+    # exhaustive_search_fast_addressing_of_data_array
+    # optimization_function_parameters['scalarization_weights'] = objective_weights
+    # optimization_function_parameters['objective_limits'] = objective_limits
+    # optimization_function_parameters['scalarization_method'] = scalarization_method
 
     print("Starting evolution...")
     evolution_t0 = datetime.datetime.now()
@@ -417,12 +434,14 @@ def main(config, black_box_function=None, output_file=""):
                                                 population_size,
                                                 generations,
                                                 mutation_rate,
+                                                crossover,
+                                                regularize,
+                                                batch_size,
                                                 param_space,
                                                 fast_addressing_of_data_array,
                                                 run_objective_function,
                                                 optimization_function_parameters
                                                 )
-
 
     r = range(len(best_configurations))
     vals = []
@@ -430,7 +449,7 @@ def main(config, black_box_function=None, output_file=""):
         vals.append(bc['Value'])
     print('values: ', vals)
     plt.scatter(r, vals)
-    #plt.show()
+    # plt.show()
     plt.savefig('evolution_output.png')
 
     # param_objs = optimization_function_parameters["param_space"].get_input_parameters_objects()
@@ -448,6 +467,7 @@ def main(config, black_box_function=None, output_file=""):
             w.writerow(tmp_list[i])
 
     print("### End of the evolutionary search.")
+
 
 if __name__ == "__main__":
 
