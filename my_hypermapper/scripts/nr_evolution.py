@@ -28,12 +28,13 @@ def get_best_config(configs):
     return leader
 
 
-def mutation(param_space, config, mutationrate = 1):
+def mutation(param_space, config, mutationrate):
     """
     Mutates one configuration. This overcomplicates the procedure. But since I might
     change the functionality I leave it like this for now
     :param param_space: space.Space(), will give us imprmation about parameters
     :param configs: list of configurations.
+    :param mutationrate: integer for how many parameters to mutate
     :return: dict, the configuration with a possible mutation
     """
     parameter_object_list = param_space.get_input_parameters_objects()
@@ -68,21 +69,22 @@ def mutation(param_space, config, mutationrate = 1):
             new_val = values[idx]
             # print('ord val? ', new_val)
         else:
-            print('error in parameter type, exiting..')
+            print('error in type of parameter', name, ' exiting..')
             sys.exit()
 
         new_config[name] = new_val
     print('old:    ', config, 'new:    ', new_config)
     # print('old: ', config)
 
-    if rd.uniform() < mutationrate:
-        parameter_names_list = param_space.get_input_parameters()
-        nbr_params = len(parameter_names_list)
-        idx = rd.randint(nbr_params)
+    # adapted to mutation rate being an integer ≥1
+    parameter_names_list = param_space.get_input_parameters()
+    nbr_params = len(parameter_names_list)
+    indices = rd.randint(0, nbr_params, mutationrate)
+    for idx in indices:
         mutation_param = parameter_names_list[idx]
         # Should I do something if they are the same?
         config[mutation_param] = new_config[mutation_param]
-        print('mutated: ', config)
+    print('mutated: ', config)
 
     # OrderedDict([('x1', <space.RealParameter object at 0x118a25080>), ('x2', <space.RealParameter object at 0x1a1accf470>)])
     # param_objs = optimization_function_parameters["param_space"].get_input_parameters_objects()
@@ -173,13 +175,16 @@ def run_objective_function(
     return population, all_evaluations_size
 
 
-def evolution(population_size, generations, mutation_rate, param_space, fast_addressing_of_data_array,
+def evolution(population_size, generations, mutation_rate, regularize, batch_size, param_space, fast_addressing_of_data_array,
               optimization_function, optimization_function_parameters):
 
     """
     Do the entire evolutinary process from config to best config
     :param population_size: an integer for the number of configs to keep. All will be initiated randomly
     :param generations: an integer for the number of iterations through the evolutionary loop
+    :param mutation_rate: an integer for the number of parameters to change in a mutation
+    :param regularize: boolean, whether to use regularized or non-regularized evolution strategy
+    :param batch_size: an integer for how many individuals to compare in a generation
     :param param_space: a space object containing the search space.
     :param optimization_function: the function that will be optimized by the evolutionary search.
     :param optimization_function_parameters: a dictionary containing the parameters that will be passed to the optimization function.
@@ -231,13 +236,15 @@ def evolution(population_size, generations, mutation_rate, param_space, fast_add
     best_configs.append(best_config)
 
     # 2
-    regularized = False     # Reals second paper. remove oldest instead of worst.
-    s = 2                   # Real 1: s=2. Real 2: s can be bigger. how much?
+    # regularized = False     # (regularize) Real 2. remove oldest instead of worst.
+    # s = 2                   # (batch_size) Real 1: s=2. Real 2: s can be bigger. how much?
     for gen in range(1, generations + 1):
         print('\n\ngeneration ', gen)
 
         # work for bigger s
-        cand_idxs = rd.randint(0, len(population), s)
+        # cand_idxs = rd.randint(0, len(population), batch_size)
+        # Do not allow doubles
+        cand_idxs = rd.permutation(len(population))[:batch_size]
         infty = float("inf")
         best = (-1, infty)
         worst = (-1, -infty)
@@ -254,7 +261,7 @@ def evolution(population_size, generations, mutation_rate, param_space, fast_add
 
         parent = population[best[0]]
 
-        if regularized:     # removing oldest, which will be first as we append new last
+        if regularize:     # removing oldest, which will be first as we append new last
             killed = population.pop(0)
         else:               # removing the worst in the subset
             killed = population.pop(worst[0])
@@ -264,9 +271,12 @@ def evolution(population_size, generations, mutation_rate, param_space, fast_add
             print('Now we are att gen: ', gen)
 
         # Make childs by copy and mutate of parent and add to pop
-        child = copy.deepcopy(parent)
+        # child = copy.deepcopy(parent)
+        child = dict()
+        for param in input_params:
+            child[param] = parent[param]
 
-        child = mutation(param_space, child)
+        child = mutation(param_space, child, mutation_rate)
 
         # children should be added to fada somehow
         child_list = [child]
@@ -340,7 +350,15 @@ def main(config, black_box_function=None, output_file=""):
     generations = config["evolution_generations"]
     # can I have non-int params? string?
     mutation_rate = config["mutation_rate"]
+    if mutation_rate > len(param_space.get_input_parameters()):
+        print("mutation rate higher than the number of parameters. makes no sense. Exiting")
+        sys.exit()
 
+    regularize = config["regularize_evolution"]
+    batch_size = config["batch_size"]
+    if batch_size > population_size:
+        print("batch_size bigger than the population_size. makes no sense. Exiting")
+        sys.exit()
     ### End of hyperparameter assigning ###
 
     # This could be good to keep. but doubt I will need it
@@ -395,6 +413,8 @@ def main(config, black_box_function=None, output_file=""):
                                                 population_size,
                                                 generations,
                                                 mutation_rate,
+                                                regularize,
+                                                batch_size,
                                                 param_space,
                                                 fast_addressing_of_data_array,
                                                 run_objective_function,
