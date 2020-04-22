@@ -50,32 +50,27 @@ def mutation(param_space, config, mutationrate):
             new_val = rd.uniform(low, high + 1e-16)
             if new_val > high:
                 new_val = high
-            # print('number? ', new_val)
         elif type == 'integer':
             low = obj.get_min()
             high = obj.get_max()
             # Remember that numpy.random.randint excludes upper bound from interval
             new_val = rd.randint(low, high + 1)
-            # print('int? ', new_val)
         elif type == 'ordinal':
             values = obj.get_values()
             nbr_vals = len(values)
             idx = rd.randint(nbr_vals)
             new_val = values[idx]
-            # print('ord val? ', new_val)
         elif type == 'categorical':
             values = obj.get_int_values()
             nbr_vals = len(values)
             idx = rd.randint(nbr_vals)
             new_val = values[idx]
-            # print('ord val? ', new_val)
         else:
             print('error in type of parameter', name, ' exiting..')
             sys.exit()
 
         new_config[name] = new_val
-    print('old:    ', config, 'new:    ', new_config)
-    # print('old: ', config)
+    # print('old:    ', config, 'new:    ', new_config)
 
     # adapted to mutation rate being an integer ≥1
     parameter_names_list = param_space.get_input_parameters()
@@ -86,7 +81,7 @@ def mutation(param_space, config, mutationrate):
         mutation_param = parameter_names_list[idx]
         # Should I do something if they are the same?
         config[mutation_param] = new_config[mutation_param]
-    print('mutated: ', config)
+    # print('mutated: ', config)
 
     # OrderedDict([('x1', <space.RealParameter object at 0x118a25080>), ('x2', <space.RealParameter object at ...>)])
     # param_objs = optimization_function_parameters["param_space"].get_input_parameters_objects()
@@ -220,7 +215,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
     # Passing the dictionary with ** expands the key-value pairs into function parameters
     # function_values_size = population_size
     population, function_values_size = optimization_function(configurations=configurations, **optimization_function_parameters)
-    print('\ninit pop: ', population)
+    # print('\ninit pop: ', population)
 
     # This will concatenate the entire data array if all configurations were evaluated
     # but only the evaluated configurations if we reached the budget and did not evaluate all
@@ -244,7 +239,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
     # s = 2 (batch_size) Real 1: s=2. Real 2: s can be bigger. how much?
 
     for gen in range(1, generations + 1):
-        print('\n\ngeneration ', gen)
+        # print('\n\ngeneration ', gen)
 
         cand_idxs = rd.permutation(len(population))[:batch_size]
         infty = float("inf")
@@ -286,7 +281,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
 
         # children should be added to fada somehow
         child_list = [child]
-        print('\nchildren: ')
+        # print('\nchildren: ')
 
         evaluated_child_list, func_val_size = optimization_function(configurations=child_list,
                                                                     **optimization_function_parameters)
@@ -302,7 +297,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
             random_children = param_space.random_sample_configurations_without_repetitions(
                 tmp_fast_addressing_of_data_array,
                 missing_child)
-            print('\nevaluated random children: ')
+            # print('\nevaluated random children: ')
             evaluated_random_children, func_val_size = optimization_function(configurations=random_children,
                                                                              **optimization_function_parameters)
 
@@ -314,15 +309,15 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
         else:               # removing the worst in the subset
             killed = population.pop(worst[0])
 
-        print('\n this one was killed of: ', killed)
+        # print('\n this one was killed of: ', killed)
 
         best_config = get_best_config(population)
         best_configs.append(best_config)
 
-        print('\nupdated pop: ', population)
+        # print('\nupdated pop: ', population)
 
     best_configuration = 0      # Do we need this? I want this for each generation
-    print('')
+    # print('')
     sys.stdout.write_to_logfile(("Evolution time %10.4f sec\n" % ((datetime.datetime.now() - t0).total_seconds())))
 
     return data_array, best_configs
@@ -447,7 +442,7 @@ def main(config, black_box_function=None, output_file=""):
     vals = []
     for bc in best_configurations:
         vals.append(bc['Value'])
-    print('values: ', vals)
+    # print('values: ', vals)
     plt.scatter(r, vals)
     # plt.show()
     plt.savefig('evolution_output.png')
