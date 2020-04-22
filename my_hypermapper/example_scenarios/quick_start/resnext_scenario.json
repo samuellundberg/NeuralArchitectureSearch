@@ -1,10 +1,15 @@
 {
     "application_name": "resnext",
     "optimization_objectives": ["Value"],
-    "output_data_file": "resnextRS100.csv",
-    "optimization_method": "random_scalarizations",
-    "evolution_population_size": 3,
-    "evolution_generations": 1,
+    "output_data_file": "resnextNRE20_80.csv",
+    "optimization_method": "evolution",
+    "evolution_population_size": 20,
+    "evolution_generations": 80,
+    "mutation_rate": 1,
+    "evolution_crossover": false,
+    "regularize_evolution": false,
+    "batch_size": 2,
+
     "design_of_experiment": {
         "doe_type": "random sampling",
         "number_of_samples": 100
