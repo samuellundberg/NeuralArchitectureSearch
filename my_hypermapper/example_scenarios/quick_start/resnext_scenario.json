@@ -19,7 +19,7 @@
     "input_parameters": {
         "epochs": {
             "parameter_type": "ordinal",
-            "values": [5]
+            "values": [20]
         },"block": {
             "parameter_type": "categorical",
             "values": ["basic", "bottleneck"],

@@ -319,7 +319,8 @@ def trainer(network, train_loader, validation_loader, device, epochs=1):
     lr = 0.001 for epoch >182
     lr = 0.01 for first epoch to warm up training if network is deep
     """
-    scheduler = MultiStepLR(optimizer, milestones=[91, 136], gamma=0.1)
+    # lower for the last two eps
+    scheduler = MultiStepLR(optimizer, milestones=[18, 136], gamma=0.1)
 
     t0 = time.perf_counter()
     for epoch in range(epochs):  # loop over the dataset multiple times
