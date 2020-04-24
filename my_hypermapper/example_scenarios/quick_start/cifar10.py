@@ -203,7 +203,9 @@ class json2ResNet(nn.Module):
             if b > 0:
                 reslays += 1
                 key = 'layer' + str(reslays)
-                if i == 0:
+
+                # changed form i==0 ro reslays==1, should not increase in first block
+                if reslays == 1:
                     lay = self._make_layer(block, filters, b)
                 else:
                     reduce *= 2
