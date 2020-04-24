@@ -34,7 +34,7 @@ def get_data_loaders(train_batch_size, test_batch_size, size=(32, 32)):
                                ToTensor(), Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     transform_test = Compose([Resize(size), ToTensor(),
                               Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-    path = 'samuel_nas/my_hypermapper/data/'
+    path = 'data/'
     train_data, validation_data = random_split(
         CIFAR10(path, download=True, transform=transform_train, train=True), [45000, 5000])
 
@@ -197,7 +197,7 @@ class json2ResNet(nn.Module):
             if b > 0:
                 reslays += 1
                 key = 'layer' + str(reslays)
-                if i == 0:
+                if reslays == 1:
                     lay = self._make_layer(block, filters, b)
                 else:
                     reduce *= 2
@@ -338,7 +338,7 @@ def trainer(network, train_loader, validation_loader, device, epochs=1):
                 #       (epoch + 1, i + 1, running_loss / 100))
             #     running_loss = 0.0
         scheduler.step()
-        if epoch % 10 == 9:
+        if epoch % 10 == 9 or epoch == 4:
             validate(network, validation_loader, device, epoch+1, t0=t0)
 
     error = validate(network, validation_loader, device, 0)
@@ -425,8 +425,8 @@ def ResNet_function(X):
 
 
 def main():
-    data = pd.read_csv('resnextRS100.csv')
-    #data = pd.read_csv('../../../results/resnextRS100.csv')
+    # data = pd.read_csv('resnextRS100.csv')
+    # data = pd.read_csv('../../../results/resnextRS100.csv')
 
     """
     best = (-1, 100)
@@ -436,17 +436,17 @@ def main():
             best = (i, value)
     """
     # 24 and 89 is the best in RS100
-    best_arch = data.iloc[24]
+    # best_arch = data.iloc[24]
 
     X = dict()
-    X["block"] = 0 if best_arch.block == "basic" else 1
-    X["group_size"] = best_arch.group_size
-    X["n_filters"] = best_arch.n_filters
-    X["filter_upd"] = best_arch.filter_upd
-    X["n_blocks1"] = best_arch.n_blocks1
-    X["n_blocks2"] = best_arch.n_blocks2
-    X["n_blocks3"] = best_arch.n_blocks3
-    X["n_blocks4"] = best_arch.n_blocks4
+    X["block"] = 0          # if best_arch.block == "basic" else 1
+    X["group_size"] = 32    # best_arch.group_size
+    X["n_filters"] = 16     # best_arch.n_filters
+    X["filter_upd"] = 2     # best_arch.filter_upd
+    X["n_blocks1"] = 0      # best_arch.n_blocks1
+    X["n_blocks2"] = 18     # best_arch.n_blocks2
+    X["n_blocks3"] = 18     # best_arch.n_blocks3
+    X["n_blocks4"] = 18     # best_arch.n_blocks4
     X["conv0"] = 0
     X["pool"] = 0
     X["reduce"] = 0
