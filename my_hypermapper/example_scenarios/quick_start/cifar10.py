@@ -350,7 +350,7 @@ def trainer(network, train_loader, validation_loader, device, epochs=1):
             # validate(network, validation_loader, device, epoch+1, t0=t0)
 
     error = validate(network, validation_loader, device, -1)
-    print('Validation acc ', 100-error, '. Training time ', (time.perf_counter() - t0) / 60, ' min')
+    # print('Validation acc ', 100-error, '. Training time ', (time.perf_counter() - t0) / 60, ' min')
 
     return error
     # return 100 * (1 - correct / total)    # 1 - accuracy for minimization
@@ -413,7 +413,7 @@ def ResNet_function(X):
     # print(X)
     my_net = json2ResNet(block, filters, filter_upd, groups, blocks, kernel_size, pool, reduce)
     ### GPU ###
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
     # Assuming that we are on a CUDA machine, this should print a CUDA device:
     # print('device: ', device.type)
     my_net.to(device)
@@ -422,7 +422,8 @@ def ResNet_function(X):
     # print('parmas: ', count_params(my_net))
     # print('we got a resnet by num lay: ', nbr_layers, 'filters: ', filters, 'blocks: ', blocks)
     error = trainer(my_net, train_loader, validation_loader, device, epochs=epochs)
-
+    my_net.cpu()
+    del my_net
 
     # print('accuracy: ', 100 - error)
     # print('\n')
