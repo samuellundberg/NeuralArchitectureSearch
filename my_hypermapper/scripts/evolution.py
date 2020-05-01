@@ -29,65 +29,42 @@ def get_best_config(configs):
     return leader
 
 
-def mutation(param_space, config, mutationrate):
+def mutation(param_space, config, mutationrate, list=False):
     """
     Mutates one configuration. This overcomplicates the procedure. But since I might
     change the functionality I leave it like this for now
     :param param_space: space.Space(), will give us imprmation about parameters
     :param configs: list of configurations.
     :param mutationrate: integer for how many parameters to mutate
-    :return: dict, the configuration with a possible mutation
+    :return: list of dicts, list of mutated configurations
     """
     parameter_object_list = param_space.get_input_parameters_objects()
-    new_config = dict()
+    rd_config = dict()
     for name, obj in parameter_object_list.items():
-        type = param_space.get_type(name)
-
-        if type == 'real':
-            low = obj.get_min()
-            high = obj.get_max()
-            # Remember that numpy.random.uniform excludes upper bound from interval
-            new_val = rd.uniform(low, high + 1e-16)
-            if new_val > high:
-                new_val = high
-        elif type == 'integer':
-            low = obj.get_min()
-            high = obj.get_max()
-            # Remember that numpy.random.randint excludes upper bound from interval
-            new_val = rd.randint(low, high + 1)
-        elif type == 'ordinal':
-            values = obj.get_values()
-            nbr_vals = len(values)
-            idx = rd.randint(nbr_vals)
-            new_val = values[idx]
-        elif type == 'categorical':
-            values = obj.get_int_values()
-            nbr_vals = len(values)
-            idx = rd.randint(nbr_vals)
-            new_val = values[idx]
-        else:
-            print('error in type of parameter', name, ' exiting..')
-            sys.exit()
-
-        new_config[name] = new_val
-    # print('old:    ', config, 'new:    ', new_config)
-
-    # adapted to mutation rate being an integer ≥1
+        x = obj.randomly_select()
+        # sucks that I have parameters with only one value
+        if x == config[name]:
+            x = obj.randomly_select()
+        rd_config[name] = x
     parameter_names_list = param_space.get_input_parameters()
     nbr_params = len(parameter_names_list)
-    # indices = rd.randint(0, nbr_params, mutationrate)
-    indices = rd.permutation(nbr_params)[:mutationrate]
-    for idx in indices:
-        mutation_param = parameter_names_list[idx]
-        # Should I do something if they are the same?
-        config[mutation_param] = new_config[mutation_param]
-    # print('mutated: ', config)
 
-    # OrderedDict([('x1', <space.RealParameter object at 0x118a25080>), ('x2', <space.RealParameter object at ...>)])
-    # param_objs = optimization_function_parameters["param_space"].get_input_parameters_objects()
-    # param_obj = param_objs['x1']
-    # print(param_obj.get_min())
-    return config
+    configs = []
+    n_configs = nbr_params if list else 1
+
+    for _ in range(n_configs):
+        indices = rd.permutation(nbr_params)[:mutationrate]
+        for idx in indices:
+            mutation_param = parameter_names_list[idx]
+            # Should I do something if they are the same?
+            temp = config.copy()
+            temp[mutation_param] = rd_config[mutation_param]
+            configs.append(temp)
+    # print('old: ', config)
+    # print('rd: ', rd_config)
+    # print('configs: ', configs)
+
+    return configs
 
 
 # Taken from local_search and modified
@@ -143,8 +120,6 @@ def run_objective_function(
     # Evaluates new configurations. If there is any
     t1 = datetime.datetime.now()
     if number_of_new_evaluations > 0:
-        # if hypermapper_mode = default, this equals run_configurations_with_black_box_function()
-        # All new evaluations are printed, deep down
         new_evaluations = param_space.run_configurations(hypermapper_mode, new_configurations, beginning_of_time,
                                                          black_box_function, run_directory)
 
@@ -168,7 +143,6 @@ def run_objective_function(
     sys.stdout.write_to_logfile(("Total time to run configurations %10.4f sec\n" %
                                  ((datetime.datetime.now() - t0).total_seconds())))
 
-    # return list(scalarized_values), feasibility_indicators
     return population, all_evaluations_size
 
 
@@ -194,11 +168,7 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
     t0 = datetime.datetime.now()
     tmp_fast_addressing_of_data_array = copy.deepcopy(fast_addressing_of_data_array)
     input_params = param_space.get_input_parameters()
-    # print("\ninput params: ", input_params, '\n')
-    # feasible_parameter = param_space.get_feasible_parameter()[0]
-    # How does it differ from *_data_array in the **dict?
     data_array = {}
-    # end_of_search = False
 
     # I think the point of this is to always get the default configuration, if there is one
     default_configuration = param_space.get_default_or_random_configuration()
@@ -212,35 +182,23 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
         configurations = param_space.random_sample_configurations_without_repetitions(tmp_fast_addressing_of_data_array,
                                                                                       population_size)
 
-    # Passing the dictionary with ** expands the key-value pairs into function parameters
-    # function_values_size = population_size
     population, function_values_size = optimization_function(configurations=configurations, **optimization_function_parameters)
-    # print('\ninit pop: ', population)
 
     # This will concatenate the entire data array if all configurations were evaluated
-    # but only the evaluated configurations if we reached the budget and did not evaluate all
     # Why would the new points be placed first in configurations???
     new_data_array = concatenate_list_of_dictionaries(configurations[:function_values_size])
     data_array = concatenate_data_dictionaries(data_array, new_data_array)
-
-    # {'x1': [param_vals], 'x2': [param_vals]}
-    # print('da: ', data_array)
-    # list where each point is a dict of its parameters. no evaluations
-    # print('config: ', configurations)
-    # Same formate as da but this one has evaluation results
-    # print('ofp_eda: ', optimization_function_parameters['evolution_data_array'])
 
     # A list of the best individual in the population at each generation.
     best_configs = []
     best_config = get_best_config(population)
     best_configs.append(best_config)
 
-    # regularized = False (regularize) Real 2. remove oldest instead of worst.
-    # s = 2 (batch_size) Real 1: s=2. Real 2: s can be bigger. how much?
-
     for gen in range(1, generations + 1):
-        # print('\n\ngeneration ', gen)
+        if not gen % 10:
+            print('Now we are att gen: ', gen)
 
+        # pick a random batch from the populotion and find the two best and the worst of the batch
         cand_idxs = rd.permutation(len(population))[:batch_size]
         infty = float("inf")
         best = (-1, infty)
@@ -255,15 +213,13 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
                 second = (ci, val)
             if val > worst[1]:
                 worst = (ci, val)
+
         # checks that candidate loop was successful
         if min(best[0], second[0], worst[0]) < 0:
             print('failed to fined best and/or worst individual. Script will terminate')
             sys.exit()
 
-        if not gen % 10 and gen > 0:
-            print('Now we are att gen: ', gen)
-
-        # Make childs by copy and mutate of parent and add to pop
+        # Make childs by copy/crossover from parent(s)
         child = dict()
         parent = population[best[0]]
         if crossover:
@@ -277,47 +233,50 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
             for param in input_params:
                 child[param] = parent[param]
 
-        child = mutation(param_space, child, mutation_rate)
+        # Get mutation candidates, evaluate and add to population
+        child_list = mutation(param_space, child, mutation_rate, list=True)
+        need_random = True
+        for c in child_list:
+            evaluated_child_list, func_val_size = optimization_function(configurations=[c],
+                                                                        **optimization_function_parameters)
+            # print(evaluated_child_list, func_val_size)
+            if evaluated_child_list:
+                new_data_array = concatenate_list_of_dictionaries([c][:func_val_size])
+                data_array = concatenate_data_dictionaries(data_array, new_data_array)
 
-        # children should be added to fada somehow
-        child_list = [child]
-        # print('\nchildren: ')
+                population.append(evaluated_child_list[0])
+                # print("mut pop: ", population)
+                need_random = False
+                break
 
-        evaluated_child_list, func_val_size = optimization_function(configurations=child_list,
-                                                                    **optimization_function_parameters)
+        # If no new configs where found, draw some random configurations instead
+        if need_random:
+            # print('found nothing')
+            tmp_fast_addressing_of_data_array = copy.deepcopy(
+                optimization_function_parameters['fast_addressing_of_data_array'])
 
-        for evaluated_child in evaluated_child_list:
-            population.append(evaluated_child)
-
-        # 7
-        # If a child is already seen
-        # When we draw some random configurations instead
-        missing_child = len(child_list) - len(evaluated_child_list)
-        if missing_child > 0:
             random_children = param_space.random_sample_configurations_without_repetitions(
-                tmp_fast_addressing_of_data_array,
-                missing_child)
-            # print('\nevaluated random children: ')
+                tmp_fast_addressing_of_data_array, 1)
+
+            # print('rc: ', random_children, "\nedafa: ",
+            #         optimization_function_parameters['fast_addressing_of_data_array'])
             evaluated_random_children, func_val_size = optimization_function(configurations=random_children,
                                                                              **optimization_function_parameters)
-
-            for evaluated_r_child in evaluated_random_children:
-                population.append(evaluated_r_child)
+            new_data_array = concatenate_list_of_dictionaries(random_children[:func_val_size])
+            data_array = concatenate_data_dictionaries(data_array, new_data_array)
+            population.append(evaluated_random_children[0])
+            # print("rd pop: ", population)
 
         if regularize:     # removing oldest, which will be first as we append new last
             killed = population.pop(0)
         else:               # removing the worst in the subset
             killed = population.pop(worst[0])
 
-        # print('\n this one was killed of: ', killed)
-
         best_config = get_best_config(population)
         best_configs.append(best_config)
 
         # print('\nupdated pop: ', population)
 
-    best_configuration = 0      # Do we need this? I want this for each generation
-    # print('')
     sys.stdout.write_to_logfile(("Evolution time %10.4f sec\n" % ((datetime.datetime.now() - t0).total_seconds())))
 
     return data_array, best_configs
@@ -438,6 +397,10 @@ def main(config, black_box_function=None, output_file=""):
                                                 optimization_function_parameters
                                                 )
 
+    print("Efter evolutionen,  da: ", len(all_samples['x1']), " fada: ", len(fast_addressing_of_data_array),
+          " eda: ", len(optimization_function_parameters['evolution_data_array']['x1']), " efada: ",
+          len(optimization_function_parameters['fast_addressing_of_data_array']))
+
     r = range(len(best_configurations))
     vals = []
     for bc in best_configurations:
@@ -461,7 +424,7 @@ def main(config, black_box_function=None, output_file=""):
         for i in range(len(evolution_data_array[optimization_metrics[0]])):
             w.writerow(tmp_list[i])
 
-    print("### End of the evolutionary search.")
+    print("### End of the evolutionary search")
 
 
 if __name__ == "__main__":
