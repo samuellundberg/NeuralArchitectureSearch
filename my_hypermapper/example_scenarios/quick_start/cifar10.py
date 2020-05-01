@@ -404,9 +404,15 @@ def ResNet_function(X):
     else:
         groups = 1
 
-    kernel_size = X['conv0']
-    pool = X['pool']
-    reduce = X['reduce']
+    kernel_size = 0
+    pool = 0
+    reduce = 0
+    if 'conv0' in X:
+        kernel_size = X['conv0']
+    if 'pool' in X:
+        pool = X['pool']
+    if 'reduce' in X:
+        reduce = X['reduce']
     epochs = X['epochs']
     block = BasicBlock if X['block'] == 0 else Bottleneck
 
