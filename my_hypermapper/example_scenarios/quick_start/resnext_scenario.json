@@ -1,8 +1,8 @@
 {
     "application_name": "resnext",
     "optimization_objectives": ["Value"],
-    "output_data_file": "resnextRS200.csv",
-    "optimization_method": "random_scalarizations",
+    "output_data_file": "resnextNRE50_150.csv",
+    "optimization_method": "evolution",
     "evolution_population_size": 50,
     "evolution_generations": 150,
     "mutation_rate": 1,
@@ -59,18 +59,6 @@
             "parameter_type": "integer",
             "values": [1, 18],
             "parameter_default" : 1
-        },
-        "conv0": {
-            "parameter_type": "categorical",
-            "values": ["3"]
-        },
-        "pool": {
-            "parameter_type": "categorical",
-            "values": ["no"]
-        },
-        "reduce": {
-            "parameter_type": "categorical",
-            "values": ["yes"]
         }
     }
 }
