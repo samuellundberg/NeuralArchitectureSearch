@@ -334,10 +334,14 @@ def trainer(network, train_loader, validation_loader, device, epochs=1):
             optimizer.zero_grad()
 
             # forward + backward + optimize
-            outputs = network(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+            try:
+                outputs = network(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+            except:
+                print('net to big')
+                return 101
 
             # print statistics
             # running_loss += loss.item()
