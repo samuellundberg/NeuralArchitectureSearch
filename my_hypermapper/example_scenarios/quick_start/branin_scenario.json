@@ -3,12 +3,12 @@
     "optimization_objectives": ["Value"],
     "optimization_iterations": 20,
     "optimization_method": "evolution",
-    "evolution_population_size": 3,
-    "evolution_generations": 1,
+    "evolution_population_size": 2,
+    "evolution_generations": 8,
     "mutation_rate": 1,
-    "evolution_crossover": true,
+    "evolution_crossover": false,
     "regularize_evolution": false,
-    "batch_size": 3,
+    "batch_size": 2,
     "input_parameters" : {
         "x1": {
             "parameter_type" : "real",
