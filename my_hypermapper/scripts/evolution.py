@@ -396,10 +396,10 @@ def main(config, black_box_function=None, output_file=""):
                                                 run_objective_function,
                                                 optimization_function_parameters
                                                 )
-
-    print("Efter evolutionen,  da: ", len(all_samples['x1']), " fada: ", len(fast_addressing_of_data_array),
-          " eda: ", len(optimization_function_parameters['evolution_data_array']['x1']), " efada: ",
-          len(optimization_function_parameters['fast_addressing_of_data_array']))
+    # fuck this
+    #print("Efter evolutionen,  da: ", len(all_samples['x1']), " fada: ", len(fast_addressing_of_data_array),
+    #      " eda: ", len(optimization_function_parameters['evolution_data_array']['x1']), " efada: ",
+    #      len(optimization_function_parameters['fast_addressing_of_data_array']))
 
     r = range(len(best_configurations))
     vals = []
