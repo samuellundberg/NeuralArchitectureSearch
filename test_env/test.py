@@ -308,7 +308,7 @@ def trainer(network, train_loader, validation_loader, device, epochs=1):
     How I want the learning rate:
     lr = 0.1 for epoch <91 
     lr = 0.01 for epoch 91-136
-    lr = 0.001 for epoch >182
+    lr = 0.001 for epoch >136
     lr = 0.01 for first epoch to warm up training if network is deep
     """
     scheduler = MultiStepLR(optimizer, milestones=[91, 136], gamma=0.1)
@@ -364,7 +364,7 @@ def validate(network, data_loader, device, epoch, t0=0):
     elif epoch == 0:
         print('Validation accuracy at end of training: %f %%' % accuracy)
     else:
-        print('Have trained ', epoch, ' out of 160 epochs in ', (time.perf_counter() - t0)/3600,
+        print('Have trained ', epoch, ' out of 180 epochs in ', (time.perf_counter() - t0)/3600,
              ' hours. val acc: ', accuracy)
 
     return 100 - accuracy
@@ -406,6 +406,9 @@ def ResNet_function(X):
 
     # print(X)
     my_net = json2ResNet(block, filters, filter_upd, groups, blocks, kernel_size, pool, reduce)
+    nbr_params = count_params(my_net)
+    print("Number of trainale parameters: ", nbr_params)
+    sys.exit()
     ### GPU ###
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # Assuming that we are on a CUDA machine, this should print a CUDA device:
@@ -422,6 +425,11 @@ def ResNet_function(X):
     # print('accuracy: ', 100 - error)
     # print('\n')
     return error
+
+
+# counts trainable weights in a model
+def count_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 def main():
@@ -441,16 +449,16 @@ def main():
     X = dict()
     X["block"] = 0          # if best_arch.block == "basic" else 1
     X["group_size"] = 32    # best_arch.group_size
-    X["n_filters"] = 16     # best_arch.n_filters
+    X["n_filters"] = 64     # best_arch.n_filters
     X["filter_upd"] = 2     # best_arch.filter_upd
-    X["n_blocks1"] = 0      # best_arch.n_blocks1
-    X["n_blocks2"] = 18     # best_arch.n_blocks2
-    X["n_blocks3"] = 18     # best_arch.n_blocks3
-    X["n_blocks4"] = 18     # best_arch.n_blocks4
+    X["n_blocks1"] = 7      # best_arch.n_blocks1
+    X["n_blocks2"] = 5    # best_arch.n_blocks2
+    X["n_blocks3"] = 15    # best_arch.n_blocks3
+    X["n_blocks4"] = 1    # best_arch.n_blocks4
     X["conv0"] = 0
     X["pool"] = 0
     X["reduce"] = 0
-    X["epochs"] = 100
+    X["epochs"] = 180
 
     print(X)
     ResNet_function(X)
