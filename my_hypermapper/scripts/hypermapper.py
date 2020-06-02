@@ -9,7 +9,7 @@ from utility_functions import *
 import json
 from jsonschema import Draft4Validator, validators, exceptions
 # Added by Samuel
-import evolution, nr_evolution
+import evolution
 
 
 def optimize(parameters_file, black_box_function=None):
@@ -65,11 +65,6 @@ def optimize(parameters_file, black_box_function=None):
         # Runs the evolutionary algorithm based on settings described in scenario
         # Properties not specified will be taken from default values in schema
         evolution.main(config, black_box_function=black_box_function)
-    # Added by Samuel
-    elif optimization_method == "nr_evolution":
-        # Runs the nr evolutionary algorithm based on settings described in scenario
-        # Properties not specified will be taken from default values in schema
-        nr_evolution.main(config, black_box_function=black_box_function)
     else:
         print("Unrecognized optimization method:", optimization_method)
         raise SystemExit

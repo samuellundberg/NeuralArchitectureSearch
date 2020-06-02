@@ -200,8 +200,8 @@
       },
       "optimization_method":{
         "type": "string",
-        "description": "Method to use for the multi-objective optimization in Hypermapper. (nr_)evolution added by Samuel",
-        "enum": ["random_scalarizations", "local_search", "evolution", "nr_evolution"],
+        "description": "Method to use for the multi-objective optimization in Hypermapper. evolution added by Samuel",
+        "enum": ["random_scalarizations", "local_search", "evolution"],
         "default": "random_scalarizations"
       },
       "local_search_starting_points":{
@@ -254,31 +254,31 @@
       "evolution_population_size":{
         "type": "integer",
         "description": "number of points the Evolutionary Algorithm keeps track of. added by Samuel",
-        "default": 5
+        "default": 50
       },
       "evolution_generations":{
         "type": "integer",
         "description": "number of iterations through the evolutionary loop. added by Samuel",
-        "default": 5
+        "default": 150
       },
       "mutation_rate":{
         "type": "integer",
-        "description": "probability for a mutation (This is not a good setting). added by Samuel",
+        "description": "number of parameters to mutate. added by Samuel",
         "default": 1
       },
       "evolution_crossover":{
         "type": "boolean",
-        "description": "whether to use crossover in the algorithm. added by Samuel",
-        "default": true
+        "description": "whether to use crossover. added by Samuel",
+        "default": false
       },
       "regularize_evolution":{
         "type": "boolean",
-        "description": "whether to regularize (kill the oldest) the evolution. added by Samuel",
+        "description": "whether to regularize (remove the oldest) the evolution. added by Samuel",
         "default": false
       },
       "batch_size":{
         "type": "integer",
-        "description": "number of samples to pick and compare in the evolutionary loop. added by Samuel",
+        "description": "number of samples to pick for tournament selection, crossover needs at least three. added by Samuel",
         "default": 2
       }
     },
