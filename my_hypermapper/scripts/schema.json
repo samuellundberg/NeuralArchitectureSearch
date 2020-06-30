@@ -32,6 +32,12 @@
         "maximum": 5000,
         "default": 50
       },
+      "time_budget": {
+        "description": "Max number of hours that HyperMapper is allowed to run for. If -1, the runtime will not be limited. added by Samuel",
+        "type": "number",
+        "minimum": -1,
+        "default": -1
+      },
       "number_of_repetitions": {
         "description": "Usually a number between 1 and 5. Number of times HyperMapper runs a single sample of the search space. For statistical significance it may be useful to run a sample several time. The mean or the median of the multiple runs is taken by HyperMapper. Execution time is negatively affected from a high number of repetitions.",
         "type": "integer",
