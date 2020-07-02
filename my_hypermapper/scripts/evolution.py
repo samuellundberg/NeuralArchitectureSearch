@@ -36,14 +36,15 @@ def mutation(param_space, config, mutationrate, list=False):
     :param param_space: space.Space(), will give us imprmation about parameters
     :param configs: list of configurations.
     :param mutationrate: integer for how many parameters to mutate
+    :param list: boolean whether returning one or more configs
     :return: list of dicts, list of mutated configurations
     """
-    # Fundering, bör jag tillåta en kopia att dyka upp men då lägga in den i pop utan att evaluera den igen?
+
     parameter_object_list = param_space.get_input_parameters_objects()
     rd_config = dict()
     for name, obj in parameter_object_list.items():
         x = obj.randomly_select()
-        # sucks that I have parameters with only one value
+        # sucks that there are parameters with only one value
         if x == config[name]:
             x = obj.randomly_select()
         rd_config[name] = x
@@ -65,7 +66,7 @@ def mutation(param_space, config, mutationrate, list=False):
     return configs
 
 
-# Taken from local_search and modified
+# Taken from local_search and slightly modified
 def run_objective_function(
                         configurations,
                         hypermapper_mode,
@@ -169,7 +170,6 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
     data_array = {}
 
     ### Initialize a random population ###
-    # I think the point of this is to always get the default configuration, if there is one
     default_configuration = param_space.get_default_or_random_configuration()
     str_data = param_space.get_unique_hash_string_from_values(default_configuration)
     if str_data not in fast_addressing_of_data_array:
@@ -184,11 +184,10 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
     population, function_values_size = optimization_function(configurations=configurations, **optimization_function_parameters)
 
     # This will concatenate the entire data array if all configurations were evaluated
-    # Why would the new points be placed first in configurations???
     new_data_array = concatenate_list_of_dictionaries(configurations[:function_values_size])
     data_array = concatenate_data_dictionaries(data_array, new_data_array)
 
-    # A list of the best individual in the population at each generation. Not really used
+    # A list of the best individual in the population at each generation
     best_configs = []
     best_config = get_best_config(population)
     best_configs.append(best_config)
@@ -239,19 +238,17 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
         for c in child_list:
             evaluated_child_list, func_val_size = optimization_function(configurations=[c],
                                                                         **optimization_function_parameters)
-            # print(evaluated_child_list, func_val_size)
+
             if evaluated_child_list:
                 new_data_array = concatenate_list_of_dictionaries([c][:func_val_size])
                 data_array = concatenate_data_dictionaries(data_array, new_data_array)
 
                 population.append(evaluated_child_list[0])
-                # print("mut pop: ", population)
                 need_random = False
                 break
 
-        # If no new configs where found, draw some random configurations instead. THIS SHOULD NOT BE NEEDED!!!
+        # If no new configs where found, draw some random configurations instead.
         if need_random:
-            # print('found nothing')
             tmp_fast_addressing_of_data_array = copy.deepcopy(
                 optimization_function_parameters['fast_addressing_of_data_array'])
 
@@ -273,8 +270,6 @@ def evolution(population_size, generations, mutation_rate, crossover, regularize
         best_config = get_best_config(population)
         best_configs.append(best_config)
 
-        # print('\nupdated pop: ', population)
-
     sys.stdout.write_to_logfile(("Evolution time %10.4f sec\n" % ((datetime.datetime.now() - t0).total_seconds())))
 
     return data_array, best_configs
@@ -292,7 +287,6 @@ def main(config, black_box_function=None, output_file=""):
     # Space basically turn config into a class with many handy functions
     param_space = space.Space(config)
 
-    # I probably want to do this
     run_directory = config["run_directory"]
     application_name = config["application_name"]
     hypermapper_mode = config["hypermapper_mode"]["mode"]
@@ -380,7 +374,7 @@ def main(config, black_box_function=None, output_file=""):
                                                 run_objective_function,
                                                 optimization_function_parameters
                                                 )
-
+    # plotting the best found configurtion as a function of optimization iterations
     # r = range(len(best_configurations))
     # vals = []
     # for bc in best_configurations:
